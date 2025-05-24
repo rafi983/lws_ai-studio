@@ -1,77 +1,84 @@
-import { useState } from "react";
+import { useRef, useState, useEffect } from "react";
 
 const usePollinations = () => {
+  const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const blobUrlsRef = useRef([]);
 
   const generateImages = async ({
     prompt,
+    model,
     width,
     height,
-    model,
     seed,
     noLogo,
   }) => {
     setLoading(true);
     setError(null);
 
-    const imagePromises = [];
-    const encodedPrompt = encodeURIComponent(prompt);
-    const baseSeed = seed
-      ? parseInt(seed, 10)
-      : Math.floor(Math.random() * 1000000000);
+    // Clean up previous images
+    blobUrlsRef.current.forEach((url) => {
+      if (url) URL.revokeObjectURL(url);
+    });
+    blobUrlsRef.current = [];
+    setImages([]);
 
-    for (let i = 0; i < 9; i++) {
-      const currentSeed = baseSeed + i;
+    const fetchPromises = Array.from({ length: 9 }).map(async (_, i) => {
+      const currentSeed =
+        (seed ? parseInt(seed, 10) : Math.floor(Math.random() * 1000000000)) +
+        i;
 
-      let url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${currentSeed}&model=${model}`;
-      if (noLogo) {
-        url += "&nologo=true";
-      }
-
-      const promise = new Promise((resolve, reject) => {
-        const controller = new AbortController();
-        const signal = controller.signal;
-        const timeoutId = setTimeout(() => {
-          controller.abort();
-          reject(new Error("Request timed out after 60 seconds"));
-        }, 60000); // 60 সেকেন্ড পর্যন্ত অপেক্ষা করবে
-
-        fetch(url, { signal })
-          .then((response) => {
-            clearTimeout(timeoutId);
-            if (!response.ok)
-              throw new Error(`HTTP error! status: ${response.status}`);
-            return response.blob();
-          })
-          .then((blob) => {
-            resolve({ imageBlob: blob, prompt });
-          })
-          .catch((err) => {
-            clearTimeout(timeoutId);
-            if (err.name === "AbortError") {
-              reject(new Error("Image generation timed out."));
-            } else {
-              reject(err);
-            }
-          });
+      const params = new URLSearchParams({
+        model: model || "playground-v2.5",
+        width: String(width),
+        height: String(height),
+        seed: String(currentSeed),
+        nologo: String(noLogo),
       });
-      imagePromises.push(promise);
-    }
 
-    try {
-      const results = await Promise.allSettled(imagePromises);
-      setLoading(false);
-      return results;
-    } catch (err) {
-      setLoading(false);
-      setError("An unexpected error occurred while generating images.");
-      console.error(err);
-      return [];
-    }
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${params.toString()}`;
+      console.log(`👉 Fetching image ${i + 1}/9:`, url);
+
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 60000);
+
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeout);
+
+        const contentType = res.headers.get("Content-Type");
+
+        if (!res.ok || !contentType || !contentType.startsWith("image/")) {
+          console.warn(
+            `❌ Invalid response for image ${i + 1}. Status: ${res.status}, Content-Type: ${contentType}`,
+          );
+          throw new Error(`Invalid image response (status ${res.status})`);
+        }
+
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        blobUrlsRef.current.push(objectUrl);
+      } catch (err) {
+        console.warn(`❌ Failed to fetch image ${i + 1}:`, err.message);
+        blobUrlsRef.current.push(null);
+      }
+    });
+
+    await Promise.all(fetchPromises);
+    setImages([...blobUrlsRef.current]);
+    setLoading(false);
   };
 
-  return { loading, error, generateImages };
+  useEffect(() => {
+    return () => {
+      blobUrlsRef.current.forEach((url) => {
+        if (url) URL.revokeObjectURL(url);
+      });
+    };
+  }, []);
+
+  return { generateImages, images, loading, error };
 };
 
 export default usePollinations;
