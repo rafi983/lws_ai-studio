@@ -31,13 +31,17 @@ const CreateImagePage = () => {
     });
     blobUrlsRef.current = [];
 
-    const model = "playground-v2.5"; // Reliable model
+    const model = "playground-v2.5"; // Fixed model
     const baseSeed = seed
       ? parseInt(seed, 10)
       : Math.floor(Math.random() * 1000000000);
 
+    console.log("🌱 Seed Lock Mode:", seed ? "ON" : "AUTO");
+    console.log("🖼️ Starting image generation...");
+
     for (let i = 0; i < 9; i++) {
-      const currentSeed = baseSeed + i;
+      const currentSeed = seed ? baseSeed : baseSeed + i;
+
       const params = new URLSearchParams({
         model,
         width,
@@ -172,6 +176,17 @@ const CreateImagePage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-zinc-400 mb-1">
+              Model
+            </label>
+            <input
+              disabled
+              value="playground-v2.5 (auto-selected)"
+              className="w-full bg-zinc-900/10 px-3 py-2 text-zinc-500 border border-zinc-700/70 rounded-md cursor-not-allowed"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-400 mb-1">
               Seed (Optional)
             </label>
             <input
@@ -238,7 +253,7 @@ const CreateImagePage = () => {
                 checked={noLogo}
                 onChange={() => setNoLogo(!noLogo)}
               />
-              <div className="w-11 h-6 bg-zinc-700 rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+              <div className="w-11 h-6 bg-zinc-700 rounded-full peer-checked:bg-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
             </label>
           </div>
         </div>
