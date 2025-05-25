@@ -2,18 +2,66 @@ import React, { useState, useEffect, useRef } from "react";
 import ImageCard from "../components/ImageCard";
 import { useDownloads } from "../context/DownloadsContext";
 
+// Function to load initial state from localStorage
+const loadInitialGeneratedData = () => {
+  try {
+    const data = localStorage.getItem("lws-ai-generated-data");
+    if (data) {
+      const parsedData = JSON.parse(data);
+      // Basic validation
+      if (parsedData.prompt && Array.isArray(parsedData.images)) {
+        return parsedData;
+      }
+    }
+  } catch (error) {
+    console.error("Could not load generated data from local storage", error);
+  }
+  return { prompt: "", images: [] };
+};
+
 const CreateImagePage = () => {
-  const [prompt, setPrompt] = useState("");
+  const [initialData] = useState(loadInitialGeneratedData);
+  const [prompt, setPrompt] = useState(initialData.prompt);
+  const [images, setImages] = useState(initialData.images);
+
   const [width, setWidth] = useState(1024);
   const [height, setHeight] = useState(1024);
   const [seed, setSeed] = useState("");
   const [noLogo, setNoLogo] = useState(true);
-  const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const { dispatch } = useDownloads();
   const blobUrlsRef = useRef([]);
+
+  // Save prompt to localStorage whenever it changes
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      const currentData = loadInitialGeneratedData();
+      currentData.prompt = prompt;
+      localStorage.setItem(
+        "lws-ai-generated-data",
+        JSON.stringify(currentData),
+      );
+    }, 500); // Debounce to avoid excessive writes
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [prompt]);
+
+  // Save generated images to localStorage
+  useEffect(() => {
+    try {
+      const currentData = { prompt, images };
+      localStorage.setItem(
+        "lws-ai-generated-data",
+        JSON.stringify(currentData),
+      );
+    } catch (error) {
+      console.error("Could not save generated images to local storage", error);
+    }
+  }, [images, prompt]);
 
   const generateImages = async () => {
     if (!prompt.trim()) {
@@ -23,12 +71,14 @@ const CreateImagePage = () => {
 
     setLoading(true);
     setError(null);
-    setImages([]);
+    setImages([]); // Clear previous images before generating new ones
 
+    // Revoke any old blob URLs to prevent memory leaks
     blobUrlsRef.current.forEach((url) => {
       if (url) URL.revokeObjectURL(url);
     });
     blobUrlsRef.current = [];
+    const generatedImageUrls = []; // To store permanent URLs for localStorage
 
     const model = "playground-v2.5";
     const baseSeed = seed
@@ -56,34 +106,37 @@ const CreateImagePage = () => {
 
         const contentType = res.headers.get("Content-Type");
         if (!res.ok || !contentType?.startsWith("image/")) {
-          console.warn(
-            `❌ Invalid response for image ${i + 1}:`,
-            res.status,
-            contentType,
-          );
           throw new Error("Invalid image response");
         }
 
         const blob = await res.blob();
         const blobUrl = URL.createObjectURL(blob);
-        blobUrlsRef.current.push(blobUrl);
+        blobUrlsRef.current.push(blobUrl); // Keep track for cleanup
+        generatedImageUrls.push(url); // Save the permanent URL
       } catch (err) {
         console.warn(`❌ Failed to fetch image ${i + 1}:`, err.message);
-        blobUrlsRef.current.push(null);
+        generatedImageUrls.push(null); // Add a placeholder for failed images
       }
     }
 
-    setImages([...blobUrlsRef.current]);
+    setImages(generatedImageUrls);
     setLoading(false);
   };
 
   const handleDownload = (url) => {
     dispatch({ type: "ADD_DOWNLOAD", payload: { imageUrl: url, prompt } });
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `image-${Date.now()}.png`;
-    a.click();
+    // We can't download cross-origin images directly. We have to fetch them again.
+    fetch(url)
+      .then((res) => res.blob())
+      .then((blob) => {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `image-${Date.now()}.png`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      })
+      .catch((err) => console.error("Failed to download image:", err));
   };
 
   const ratioPresets = {
@@ -93,6 +146,7 @@ const CreateImagePage = () => {
     "3:2": { width: 1620, height: 1080 },
   };
 
+  // Cleanup blob URLs on component unmount
   useEffect(() => {
     return () => {
       blobUrlsRef.current.forEach((url) => {
