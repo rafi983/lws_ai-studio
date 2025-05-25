@@ -25,19 +25,15 @@ const CreateImagePage = () => {
     setError(null);
     setImages([]);
 
-    // Cleanup old blobs
     blobUrlsRef.current.forEach((url) => {
       if (url) URL.revokeObjectURL(url);
     });
     blobUrlsRef.current = [];
 
-    const model = "playground-v2.5"; // Fixed model
+    const model = "playground-v2.5";
     const baseSeed = seed
       ? parseInt(seed, 10)
       : Math.floor(Math.random() * 1000000000);
-
-    console.log("🌱 Seed Lock Mode:", seed ? "ON" : "AUTO");
-    console.log("🖼️ Starting image generation...");
 
     for (let i = 0; i < 9; i++) {
       const currentSeed = seed ? baseSeed : baseSeed + i;
@@ -51,7 +47,6 @@ const CreateImagePage = () => {
       });
 
       const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${params.toString()}`;
-      console.log(`👉 Fetching image ${i + 1}/9:`, url);
 
       try {
         const controller = new AbortController();
@@ -83,7 +78,12 @@ const CreateImagePage = () => {
   };
 
   const handleDownload = (url) => {
-    dispatch({ type: "ADD_DOWNLOAD", payload: url });
+    dispatch({ type: "ADD_DOWNLOAD", payload: { imageUrl: url, prompt } });
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `image-${Date.now()}.png`;
+    a.click();
   };
 
   const ratioPresets = {
@@ -104,7 +104,7 @@ const CreateImagePage = () => {
   return (
     <div>
       <h2 className="text-4xl font-bold mb-8">
-        Let's create a masterpiece! <span className="text-2xl">👋</span>
+        Let's create a masterpiece, Alvian! <span className="text-2xl">👋</span>
       </h2>
 
       <div className="relative mb-8 rounded-full overflow-hidden border border-zinc-700 bg-zinc-900/10 backdrop-blur-sm">
@@ -171,6 +171,7 @@ const CreateImagePage = () => {
         </div>
       </div>
 
+      {/* Advanced Settings Section Restored */}
       <div className="border border-zinc-700/70 mb-6 rounded-lg p-4">
         <h4 className="font-medium mb-4">Advanced Settings</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -271,8 +272,9 @@ const CreateImagePage = () => {
           url ? (
             <ImageCard
               key={index}
-              img={url}
-              onDownload={() => handleDownload(url)}
+              imageUrl={url}
+              prompt={prompt}
+              onDownload={handleDownload}
             />
           ) : (
             <div
