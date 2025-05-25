@@ -3,6 +3,7 @@ import ImageCard from "../components/ImageCard";
 import CustomSelect from "../components/CustomSelect";
 import ImageSkeleton from "../components/ImageSkeleton";
 import { useDownloads } from "../context/DownloadsContext";
+import toast from "react-hot-toast"; // <-- IMPORT TOAST
 
 const modelOptions = [
   {
@@ -92,10 +93,12 @@ const CreateImagePage = () => {
 
   const generateImages = async () => {
     if (!prompt.trim()) {
-      alert("Please enter a prompt.");
+      // --- TOAST: For validation error ---
+      toast.error("Please enter a prompt.");
       return;
     }
 
+    const loadingToast = toast.loading("Conjuring up your masterpiece...");
     setLoading(true);
     setError(null);
 
@@ -114,8 +117,6 @@ const CreateImagePage = () => {
     for (let i = 0; i < 9; i++) {
       const currentSeed = seed ? baseSeed : baseSeed + i;
 
-      // --- THIS IS THE CRITICAL FIX ---
-      // 1. Create the params object without the nologo parameter
       const params = new URLSearchParams({
         model,
         width,
@@ -123,11 +124,9 @@ const CreateImagePage = () => {
         seed: currentSeed,
       });
 
-      // 2. Only add the 'nologo' parameter if the switch is ON
       if (noLogo) {
         params.append("nologo", "true");
       }
-      // --- END OF FIX ---
 
       const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${params.toString()}`;
 
@@ -165,6 +164,9 @@ const CreateImagePage = () => {
       });
     }
 
+    // --- TOAST: For generation success ---
+    toast.dismiss(loadingToast);
+    toast.success("Images generated successfully!");
     setLoading(false);
   };
 
@@ -177,6 +179,9 @@ const CreateImagePage = () => {
     };
     dispatch({ type: "ADD_DOWNLOAD", payload: downloadPayload });
 
+    // --- TOAST: For download success ---
+    toast.success("Download started!");
+
     fetch(image.permanentUrl)
       .then((res) => res.blob())
       .then((blob) => {
@@ -188,7 +193,10 @@ const CreateImagePage = () => {
         document.body.removeChild(a);
         URL.revokeObjectURL(a.href);
       })
-      .catch((err) => console.error("Failed to download image:", err));
+      .catch((err) => {
+        toast.error("Download failed.");
+        console.error("Failed to download image:", err);
+      });
   };
 
   const ratioPresets = {
