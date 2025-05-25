@@ -1,23 +1,41 @@
 import React, { useState, useEffect, useRef } from "react";
 import ImageCard from "../components/ImageCard";
+import CustomSelect from "../components/CustomSelect"; // <-- IMPORT THE NEW COMPONENT
 import { useDownloads } from "../context/DownloadsContext";
 
-/**
- * CORRECTED:
- * - Re-introduced the logic to create temporary `blob:` URLs for safe, in-browser display.
- * - The image object now has two URL properties:
- * - `displayUrl`: The temporary blob URL for the <img> tag.
- * - `permanentUrl`: The original API URL, used for downloading and saving to history.
- * - handleDownload now correctly uses the permanentUrl.
- * - localStorage now saves the object with the permanentUrl.
- */
+// The options data structure for our new custom select component
+const modelOptions = [
+  {
+    label: "Recommended",
+    options: [
+      { value: "playground-v2.5", label: "Playground v2.5" },
+      { value: "sdxl", label: "Stable Diffusion XL" },
+      { value: "dall-e-3", label: "DALL-E 3" },
+      { value: "flux-schnell", label: "Flux (Fast)" },
+    ],
+  },
+  {
+    label: "Artistic & Stylized",
+    options: [
+      { value: "openjourney", label: "OpenJourney" },
+      { value: "waifu-diffusion", label: "Waifu Diffusion (Anime)" },
+    ],
+  },
+  {
+    label: "Photorealistic",
+    options: [
+      { value: "realistic-vision", label: "Realistic Vision" },
+      { value: "absolute-reality", label: "Absolute Reality" },
+    ],
+  },
+];
+
 const loadInitialGeneratedData = () => {
   try {
     const data = localStorage.getItem("lws-ai-generated-data");
     if (data) {
       const parsedData = JSON.parse(data);
       if (parsedData.prompt && Array.isArray(parsedData.images)) {
-        // Map the stored permanent URLs to display URLs for rendering
         parsedData.images = parsedData.images.map((img) => ({
           ...img,
           displayUrl: img.permanentUrl,
@@ -49,7 +67,6 @@ const CreateImagePage = () => {
 
   useEffect(() => {
     try {
-      // Save only the permanent URLs to localStorage
       const imagesToStore = images.map(
         ({ permanentUrl, prompt, model, seed }) => ({
           permanentUrl,
@@ -112,14 +129,13 @@ const CreateImagePage = () => {
           throw new Error("Invalid image response");
         }
 
-        // --- THIS IS THE CRITICAL FIX ---
         const blob = await res.blob();
         const blobUrl = URL.createObjectURL(blob);
-        blobUrlsRef.current.push(blobUrl); // Track for cleanup
+        blobUrlsRef.current.push(blobUrl);
 
         generatedImageObjects.push({
-          displayUrl: blobUrl, // For the <img> tag
-          permanentUrl: url, // For downloading & localStorage
+          displayUrl: blobUrl,
+          permanentUrl: url,
           prompt: prompt,
           model: model,
           seed: currentSeed,
@@ -135,16 +151,14 @@ const CreateImagePage = () => {
   };
 
   const handleDownload = (image) => {
-    // We create the object for the downloads context here
     const downloadPayload = {
-      imageUrl: image.permanentUrl, // Save the permanent URL
+      imageUrl: image.permanentUrl,
       prompt: image.prompt,
       model: image.model,
       seed: image.seed,
     };
     dispatch({ type: "ADD_DOWNLOAD", payload: downloadPayload });
 
-    // We still use the permanentUrl to fetch the original data for download
     fetch(image.permanentUrl)
       .then((res) => res.blob())
       .then((blob) => {
@@ -247,31 +261,13 @@ const CreateImagePage = () => {
       <div className="border border-zinc-700/70 mb-6 rounded-lg p-4">
         <h4 className="font-medium mb-4">Advanced Settings</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-1">
-              Model
-            </label>
-            <select
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              className="w-full bg-zinc-800 px-3 py-2 border border-zinc-700/70 rounded-md text-white hover:bg-zinc-700 cursor-pointer"
-            >
-              <optgroup label="Recommended">
-                <option value="playground-v2.5">Playground v2.5</option>
-                <option value="sdxl">Stable Diffusion XL</option>
-                <option value="dall-e-3">DALL-E 3</option>
-                <option value="flux-schnell">Flux (Fast)</option>
-              </optgroup>
-              <optgroup label="Artistic & Stylized">
-                <option value="openjourney">OpenJourney</option>
-                <option value="waifu-diffusion">Waifu Diffusion (Anime)</option>
-              </optgroup>
-              <optgroup label="Photorealistic">
-                <option value="realistic-vision">Realistic Vision</option>
-                <option value="absolute-reality">Absolute Reality</option>
-              </optgroup>
-            </select>
-          </div>
+          {/* USE THE NEW CUSTOM SELECT COMPONENT */}
+          <CustomSelect
+            label="Model"
+            options={modelOptions}
+            value={model}
+            onChange={setModel}
+          />
 
           <div>
             <label className="block text-sm font-medium text-zinc-400 mb-1">

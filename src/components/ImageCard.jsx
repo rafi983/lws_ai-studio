@@ -2,13 +2,17 @@ import React, { useState } from "react";
 
 /**
  * CORRECTED:
- * - The <img> tag now uses `image.displayUrl` for rendering the image.
- * - The rest of the logic remains the same.
+ * - Made the component more robust by checking for `image.displayUrl` OR `image.imageUrl`.
+ * - This ensures the card works correctly on both the "Create" page and the "Downloaded" page.
  */
 export default function ImageCard({ image, onDownload }) {
   const [hasError, setHasError] = useState(false);
 
-  if (hasError || !image?.displayUrl) {
+  // --- THIS IS THE FIX ---
+  // The component now correctly finds the URL to display from either property.
+  const imageUrlToDisplay = image.displayUrl || image.imageUrl;
+
+  if (hasError || !imageUrlToDisplay) {
     return (
       <div className="w-full h-48 bg-zinc-800 rounded-xl flex items-center justify-center text-center p-4">
         <p className="text-zinc-400 text-sm">Unable to load image.</p>
@@ -43,23 +47,25 @@ export default function ImageCard({ image, onDownload }) {
         </div>
       )}
 
-      {/* Image Display - Using the correct displayUrl */}
+      {/* Image Display - Using the flexible imageUrlToDisplay variable */}
       <img
-        src={image.displayUrl}
+        src={imageUrlToDisplay}
         alt={image.prompt || "Generated AI"}
         className="w-full h-48 object-cover group-hover:opacity-80 transition-opacity"
         onError={() => setHasError(true)}
       />
 
       {/* Verification Info Overlay */}
-      <div className="absolute bottom-0 left-0 w-full p-2 bg-gradient-to-t from-black/80 to-transparent">
-        <p
-          className="text-white text-xs font-semibold truncate"
-          title={image.model}
-        >
-          Model: {image.model}
-        </p>
-      </div>
+      {image.model && ( // Only show this if model info exists
+        <div className="absolute bottom-0 left-0 w-full p-2 bg-gradient-to-t from-black/80 to-transparent">
+          <p
+            className="text-white text-xs font-semibold truncate"
+            title={image.model}
+          >
+            Model: {image.model}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
