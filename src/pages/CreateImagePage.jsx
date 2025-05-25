@@ -2,45 +2,24 @@ import React, { useState, useEffect, useRef } from "react";
 import ImageCard from "../components/ImageCard";
 import CustomSelect from "../components/CustomSelect";
 import ImageSkeleton from "../components/ImageSkeleton";
+import FailedImageCard from "../components/FailedImageCard";
 import { useDownloads } from "../context/DownloadsContext";
-import toast from "react-hot-toast"; // <-- IMPORT TOAST
-
-const modelOptions = [
-  {
-    label: "Recommended",
-    options: [
-      { value: "playground-v2.5", label: "Playground v2.5" },
-      { value: "sdxl", label: "Stable Diffusion XL" },
-      { value: "dall-e-3", label: "DALL-E 3" },
-      { value: "flux-schnell", label: "Flux (Fast)" },
-    ],
-  },
-  {
-    label: "Artistic & Stylized",
-    options: [
-      { value: "openjourney", label: "OpenJourney" },
-      { value: "waifu-diffusion", label: "Waifu Diffusion (Anime)" },
-    ],
-  },
-  {
-    label: "Photorealistic",
-    options: [
-      { value: "realistic-vision", label: "Realistic Vision" },
-      { value: "absolute-reality", label: "Absolute Reality" },
-    ],
-  },
-];
+import toast from "react-hot-toast";
 
 const loadInitialGeneratedData = () => {
   try {
     const data = localStorage.getItem("lws-ai-generated-data");
     if (data) {
       const parsedData = JSON.parse(data);
-      if (parsedData.prompt && Array.isArray(parsedData.images)) {
-        parsedData.images = parsedData.images.map((img) => ({
-          ...img,
-          displayUrl: img.permanentUrl,
-        }));
+      if (parsedData.prompt !== undefined && Array.isArray(parsedData.images)) {
+        // CORRECTED: Handle null values when mapping for displayUrl
+        parsedData.images = parsedData.images.map((img) => {
+          if (img) {
+            // If img is an object (successful image from localStorage)
+            return { ...img, displayUrl: img.permanentUrl };
+          }
+          return null; // Preserve null for failed images loaded from localStorage
+        });
         return parsedData;
       }
     }
@@ -56,6 +35,9 @@ const CreateImagePage = () => {
   const [images, setImages] = useState(initialData.images);
   const [model, setModel] = useState(initialData.model);
 
+  const [availableModels, setAvailableModels] = useState([]);
+  const [modelsLoading, setModelsLoading] = useState(true);
+
   const [width, setWidth] = useState(1024);
   const [height, setHeight] = useState(1024);
   const [seed, setSeed] = useState("");
@@ -67,33 +49,100 @@ const CreateImagePage = () => {
   const blobUrlsRef = useRef([]);
 
   useEffect(() => {
-    try {
-      const imagesToStore = images
-        .filter((img) => !img.isLoading)
-        .map(({ permanentUrl, prompt, model, seed }) => ({
-          permanentUrl,
-          prompt,
-          model,
-          seed,
+    const fetchModels = async () => {
+      setModelsLoading(true);
+      try {
+        const response = await fetch("https://image.pollinations.ai/models");
+        const data = await response.json();
+
+        const modelList = data.map((modelName) => ({
+          value: modelName,
+          label: modelName
+            .replace(/-/g, " ")
+            .replace(/\b\w/g, (l) => l.toUpperCase()),
         }));
 
-      if (imagesToStore.length === 0 && initialData.images.length > 0) {
-        return;
-      }
+        setAvailableModels(modelList);
 
-      const currentData = { prompt, images: imagesToStore, model };
-      localStorage.setItem(
-        "lws-ai-generated-data",
-        JSON.stringify(currentData),
-      );
-    } catch (error) {
-      console.error("Could not save generated data to local storage", error);
+        const currentModelIsValid = modelList.some((m) => m.value === model);
+        if (!currentModelIsValid && modelList.length > 0) {
+          setModel(modelList[0].value);
+        } else if (!currentModelIsValid && modelList.length === 0) {
+          setModel("playground-v2.5");
+        }
+      } catch (err) {
+        toast.error("Could not fetch AI models.");
+        console.error("Failed to fetch models:", err);
+        setAvailableModels([
+          { value: "playground-v2.5", label: "Playground V2.5 (Fallback)" },
+        ]);
+        setModel("playground-v2.5");
+      } finally {
+        setModelsLoading(false);
+      }
+    };
+
+    fetchModels();
+  }, []);
+
+  // useEffect for saving to localStorage
+  useEffect(() => {
+    // Only save if we are not actively loading images (i.e., generation is complete or page loaded)
+    if (!loading) {
+      try {
+        // CORRECTED: Process the 'images' array to persist successful images and 'null' for failures
+        const imagesToStore = images
+          .map((img) => {
+            if (img && !img.isLoading) {
+              // It's a successful image object
+              return {
+                permanentUrl: img.permanentUrl,
+                prompt: img.prompt,
+                model: img.model,
+                seed: img.seed,
+                // displayUrl is not needed here as it's same as permanentUrl for stored images
+              };
+            }
+            if (img === null) {
+              // It's an explicit failure, store as null
+              return null;
+            }
+            // If it's a skeleton (img.isLoading === true), we don't persist it.
+            // This situation ideally shouldn't occur here if !loading is true,
+            // but this ensures skeletons aren't saved.
+            return undefined; // This will be filtered out if any skeletons somehow remain
+          })
+          .filter((img) => img !== undefined); // Remove any 'undefined' entries
+
+        // Avoid saving an empty 'images' array if the initial state was also empty,
+        // unless a prompt or model has been set (indicating user interaction).
+        // Or if the images array explicitly has content (successful images or nulls).
+        if (imagesToStore.length > 0 || prompt || model !== initialData.model) {
+          const currentData = { prompt, images: imagesToStore, model };
+          localStorage.setItem(
+            "lws-ai-generated-data",
+            JSON.stringify(currentData),
+          );
+        } else if (
+          initialData.images.length === 0 &&
+          !prompt &&
+          model === initialData.model
+        ) {
+          // If it's truly a fresh start or reset state, allow saving the empty array
+          const currentData = { prompt, images: [], model };
+          localStorage.setItem(
+            "lws-ai-generated-data",
+            JSON.stringify(currentData),
+          );
+        }
+      } catch (error) {
+        console.error("Could not save generated data to local storage", error);
+      }
     }
-  }, [prompt, images, model, initialData.images]);
+  }, [prompt, images, model, loading, initialData.model, initialData.images]);
 
   const generateImages = async () => {
     if (!prompt.trim()) {
-      // --- TOAST: For validation error ---
       toast.error("Please enter a prompt.");
       return;
     }
@@ -123,10 +172,7 @@ const CreateImagePage = () => {
         height,
         seed: currentSeed,
       });
-
-      if (noLogo) {
-        params.append("nologo", "true");
-      }
+      if (noLogo) params.append("nologo", "true");
 
       const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${params.toString()}`;
 
@@ -138,9 +184,8 @@ const CreateImagePage = () => {
         clearTimeout(timeout);
 
         const contentType = res.headers.get("Content-Type");
-        if (!res.ok || !contentType?.startsWith("image/")) {
+        if (!res.ok || !contentType?.startsWith("image/"))
           throw new Error("Invalid image response");
-        }
 
         const blob = await res.blob();
         const blobUrl = URL.createObjectURL(blob);
@@ -155,16 +200,16 @@ const CreateImagePage = () => {
         };
       } catch (err) {
         console.warn(`❌ Failed to fetch image ${i + 1}:`, err.message);
+        // resultObject remains null for failures
       }
 
       setImages((currentImages) => {
         const newImages = [...currentImages];
-        newImages[i] = resultObject;
+        newImages[i] = resultObject; // If resultObject is null, it signifies a failed image
         return newImages;
       });
     }
 
-    // --- TOAST: For generation success ---
     toast.dismiss(loadingToast);
     toast.success("Images generated successfully!");
     setLoading(false);
@@ -179,7 +224,6 @@ const CreateImagePage = () => {
     };
     dispatch({ type: "ADD_DOWNLOAD", payload: downloadPayload });
 
-    // --- TOAST: For download success ---
     toast.success("Download started!");
 
     fetch(image.permanentUrl)
@@ -187,7 +231,7 @@ const CreateImagePage = () => {
       .then((blob) => {
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = `${image.prompt.slice(0, 20)}-${Date.now()}.png`;
+        a.download = `${image.prompt.slice(0, 20).replace(/[^a-zA-Z0-9]/g, "_")}-${Date.now()}.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -207,11 +251,10 @@ const CreateImagePage = () => {
   };
 
   useEffect(() => {
-    return () => {
+    return () =>
       blobUrlsRef.current.forEach((url) => {
         if (url) URL.revokeObjectURL(url);
       });
-    };
   }, []);
 
   return (
@@ -229,12 +272,13 @@ const CreateImagePage = () => {
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
+              {" "}
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth="2"
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
+              />{" "}
             </svg>
           </div>
           <input
@@ -247,7 +291,7 @@ const CreateImagePage = () => {
           />
           <button
             onClick={generateImages}
-            disabled={loading}
+            disabled={loading || modelsLoading}
             className="bg-zinc-800 hover:bg-zinc-700 transition-colors p-4 mr-1 rounded-full disabled:opacity-50"
           >
             {loading ? (
@@ -257,6 +301,7 @@ const CreateImagePage = () => {
                 fill="none"
                 viewBox="0 0 24 24"
               >
+                {" "}
                 <circle
                   className="opacity-25"
                   cx="12"
@@ -264,12 +309,12 @@ const CreateImagePage = () => {
                   r="10"
                   stroke="currentColor"
                   strokeWidth="4"
-                ></circle>
+                ></circle>{" "}
                 <path
                   className="opacity-75"
                   fill="currentColor"
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
+                />{" "}
               </svg>
             ) : (
               <svg
@@ -277,7 +322,8 @@ const CreateImagePage = () => {
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
-                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                {" "}
+                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />{" "}
               </svg>
             )}
           </button>
@@ -289,14 +335,16 @@ const CreateImagePage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <CustomSelect
             label="Model"
-            options={modelOptions}
+            options={availableModels}
             value={model}
             onChange={setModel}
+            disabled={modelsLoading}
           />
 
           <div>
             <label className="block text-sm font-medium text-zinc-400 mb-1">
-              Seed (Optional)
+              {" "}
+              Seed (Optional){" "}
             </label>
             <input
               type="number"
@@ -309,7 +357,8 @@ const CreateImagePage = () => {
 
           <div>
             <label className="block text-sm font-medium text-zinc-400 mb-1">
-              Width
+              {" "}
+              Width{" "}
             </label>
             <input
               type="number"
@@ -321,7 +370,8 @@ const CreateImagePage = () => {
 
           <div>
             <label className="block text-sm font-medium text-zinc-400 mb-1">
-              Height
+              {" "}
+              Height{" "}
             </label>
             <input
               type="number"
@@ -333,7 +383,8 @@ const CreateImagePage = () => {
 
           <div>
             <label className="block text-sm font-medium text-zinc-400 mb-1">
-              Aspect Ratio Presets
+              {" "}
+              Aspect Ratio Presets{" "}
             </label>
             <div className="flex flex-wrap gap-2">
               {Object.entries(ratioPresets).map(([label, val]) => (
@@ -345,7 +396,8 @@ const CreateImagePage = () => {
                   }}
                   className="bg-zinc-900/10 px-3 py-2 text-xs hover:bg-zinc-800 rounded transition-colors"
                 >
-                  {label}
+                  {" "}
+                  {label}{" "}
                 </button>
               ))}
             </div>
@@ -353,7 +405,8 @@ const CreateImagePage = () => {
 
           <div>
             <label className="block text-sm font-medium text-zinc-400 mb-2">
-              Remove Watermark
+              {" "}
+              Remove Watermark{" "}
             </label>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -368,19 +421,19 @@ const CreateImagePage = () => {
         </div>
       </div>
 
-      {loading && images.every((img) => img.isLoading) && (
+      {loading && images.every((img) => img && img.isLoading) && (
         <p className="text-center py-4 text-zinc-300">
-          Generating images... Please wait.
+          {" "}
+          Generating images... Please wait.{" "}
         </p>
       )}
       {error && <p className="text-center text-red-400">{error}</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {images.map((image, index) => {
-          if (image?.isLoading) {
+          if (image?.isLoading)
             return <ImageSkeleton key={`skeleton-${index}`} />;
-          }
-          if (image) {
+          if (image)
             return (
               <ImageCard
                 key={image.permanentUrl || index}
@@ -388,15 +441,7 @@ const CreateImagePage = () => {
                 onDownload={handleDownload}
               />
             );
-          }
-          return (
-            <div
-              key={`failed-${index}`}
-              className="w-full h-48 bg-zinc-800 rounded-xl flex items-center justify-center text-center p-4"
-            >
-              <p className="text-red-400 text-sm">Failed to generate image.</p>
-            </div>
-          );
+          return <FailedImageCard key={`failed-${index}`} />;
         })}
       </div>
     </div>

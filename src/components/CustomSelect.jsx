@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 
-// The ChevronDown icon component
 const ChevronDown = ({ className }) => (
   <svg
     className={className}
@@ -14,20 +13,23 @@ const ChevronDown = ({ className }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
   >
-    <path d="m6 9 6 6 6-6" />
+    {" "}
+    <path d="m6 9 6 6 6-6" />{" "}
   </svg>
 );
 
-const CustomSelect = ({ label, options, value, onChange }) => {
+const CustomSelect = ({
+  label,
+  options,
+  value,
+  onChange,
+  disabled = false,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const selectRef = useRef(null);
 
-  // Find the full option object for the current value
-  const selectedOption = options
-    .flatMap((group) => group.options)
-    .find((option) => option.value === value);
+  const selectedOption = options.find((option) => option.value === value);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (selectRef.current && !selectRef.current.contains(event.target)) {
@@ -35,9 +37,7 @@ const CustomSelect = ({ label, options, value, onChange }) => {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleOptionClick = (optionValue) => {
@@ -52,53 +52,46 @@ const CustomSelect = ({ label, options, value, onChange }) => {
       </label>
       <button
         type="button"
-        className={`flex w-full items-center justify-between rounded-lg px-4 py-2 text-white border border-zinc-700/70 hover:bg-zinc-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${isOpen ? "ring-2 ring-blue-500" : ""}`}
-        onClick={() => setIsOpen(!isOpen)}
+        disabled={disabled}
+        className={`flex w-full items-center justify-between rounded-lg bg-zinc-900/10 px-4 py-2 text-white border border-zinc-700/70 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${isOpen ? "ring-2 ring-blue-500" : ""} ${disabled ? "cursor-not-allowed opacity-50" : "hover:bg-zinc-700/20"}`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
       >
         <span>
-          {selectedOption ? selectedOption.label : "Select a model..."}
+          {disabled
+            ? "Loading models..."
+            : selectedOption
+              ? selectedOption.label
+              : "Select a model..."}
         </span>
         <ChevronDown
           className={`h-5 w-5 text-zinc-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
 
-      {/* Dropdown Panel - Setting the background here */}
-      {isOpen && (
+      {isOpen && !disabled && (
         <div className="absolute z-10 mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 shadow-lg animate-fade-in-down">
           <ul className="max-h-60 overflow-y-auto p-1 custom-scrollbar">
-            {" "}
-            {/* Added custom-scrollbar class */}
-            {options.map((group) => (
-              <li key={group.label}>
-                <div className="px-3 py-2 text-xs font-bold uppercase text-zinc-400">
-                  {group.label}
-                </div>
-                <ul>
-                  {group.options.map((option) => (
-                    <li
-                      key={option.value}
-                      className={`flex items-center justify-between p-3 text-sm rounded-md cursor-pointer transition-colors ${value === option.value ? "bg-blue-600 text-white" : "text-zinc-200 hover:bg-zinc-700"}`}
-                      onClick={() => handleOptionClick(option.value)}
-                    >
-                      {option.label}
-                      {value === option.value && (
-                        <svg
-                          className="h-5 w-5"
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+            {options.map((option) => (
+              <li
+                key={option.value}
+                className={`flex items-center justify-between p-3 text-sm rounded-md cursor-pointer transition-colors ${value === option.value ? "bg-blue-600 text-white" : "text-zinc-200 hover:bg-zinc-700"}`}
+                onClick={() => handleOptionClick(option.value)}
+              >
+                {option.label}
+                {value === option.value && (
+                  <svg
+                    className="h-5 w-5"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                )}
               </li>
             ))}
           </ul>
