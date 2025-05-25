@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import ImageCard from "../components/ImageCard";
-import CustomSelect from "../components/CustomSelect"; // <-- IMPORT THE NEW COMPONENT
+import CustomSelect from "../components/CustomSelect";
+import ImageSkeleton from "../components/ImageSkeleton";
 import { useDownloads } from "../context/DownloadsContext";
 
-// The options data structure for our new custom select component
 const modelOptions = [
   {
     label: "Recommended",
@@ -67,14 +67,19 @@ const CreateImagePage = () => {
 
   useEffect(() => {
     try {
-      const imagesToStore = images.map(
-        ({ permanentUrl, prompt, model, seed }) => ({
+      const imagesToStore = images
+        .filter((img) => !img.isLoading)
+        .map(({ permanentUrl, prompt, model, seed }) => ({
           permanentUrl,
           prompt,
           model,
           seed,
-        }),
-      );
+        }));
+
+      if (imagesToStore.length === 0 && initialData.images.length > 0) {
+        return;
+      }
+
       const currentData = { prompt, images: imagesToStore, model };
       localStorage.setItem(
         "lws-ai-generated-data",
@@ -83,7 +88,7 @@ const CreateImagePage = () => {
     } catch (error) {
       console.error("Could not save generated data to local storage", error);
     }
-  }, [prompt, images, model]);
+  }, [prompt, images, model, initialData.images]);
 
   const generateImages = async () => {
     if (!prompt.trim()) {
@@ -93,13 +98,14 @@ const CreateImagePage = () => {
 
     setLoading(true);
     setError(null);
-    setImages([]);
+
+    const skeletonArray = Array(9).fill({ isLoading: true });
+    setImages(skeletonArray);
 
     blobUrlsRef.current.forEach((url) => {
       if (url) URL.revokeObjectURL(url);
     });
     blobUrlsRef.current = [];
-    const generatedImageObjects = [];
 
     const baseSeed = seed
       ? parseInt(seed, 10)
@@ -108,16 +114,24 @@ const CreateImagePage = () => {
     for (let i = 0; i < 9; i++) {
       const currentSeed = seed ? baseSeed : baseSeed + i;
 
+      // --- THIS IS THE CRITICAL FIX ---
+      // 1. Create the params object without the nologo parameter
       const params = new URLSearchParams({
         model,
         width,
         height,
         seed: currentSeed,
-        nologo: String(noLogo),
       });
+
+      // 2. Only add the 'nologo' parameter if the switch is ON
+      if (noLogo) {
+        params.append("nologo", "true");
+      }
+      // --- END OF FIX ---
 
       const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${params.toString()}`;
 
+      let resultObject = null;
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 60000);
@@ -133,20 +147,24 @@ const CreateImagePage = () => {
         const blobUrl = URL.createObjectURL(blob);
         blobUrlsRef.current.push(blobUrl);
 
-        generatedImageObjects.push({
+        resultObject = {
           displayUrl: blobUrl,
           permanentUrl: url,
           prompt: prompt,
           model: model,
           seed: currentSeed,
-        });
+        };
       } catch (err) {
         console.warn(`❌ Failed to fetch image ${i + 1}:`, err.message);
-        generatedImageObjects.push(null);
       }
+
+      setImages((currentImages) => {
+        const newImages = [...currentImages];
+        newImages[i] = resultObject;
+        return newImages;
+      });
     }
 
-    setImages(generatedImageObjects);
     setLoading(false);
   };
 
@@ -261,7 +279,6 @@ const CreateImagePage = () => {
       <div className="border border-zinc-700/70 mb-6 rounded-lg p-4">
         <h4 className="font-medium mb-4">Advanced Settings</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* USE THE NEW CUSTOM SELECT COMPONENT */}
           <CustomSelect
             label="Model"
             options={modelOptions}
@@ -343,7 +360,7 @@ const CreateImagePage = () => {
         </div>
       </div>
 
-      {loading && (
+      {loading && images.every((img) => img.isLoading) && (
         <p className="text-center py-4 text-zinc-300">
           Generating images... Please wait.
         </p>
@@ -351,18 +368,28 @@ const CreateImagePage = () => {
       {error && <p className="text-center text-red-400">{error}</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {images.map((image, index) =>
-          image ? (
-            <ImageCard key={index} image={image} onDownload={handleDownload} />
-          ) : (
+        {images.map((image, index) => {
+          if (image?.isLoading) {
+            return <ImageSkeleton key={`skeleton-${index}`} />;
+          }
+          if (image) {
+            return (
+              <ImageCard
+                key={image.permanentUrl || index}
+                image={image}
+                onDownload={handleDownload}
+              />
+            );
+          }
+          return (
             <div
-              key={index}
+              key={`failed-${index}`}
               className="w-full h-48 bg-zinc-800 rounded-xl flex items-center justify-center text-center p-4"
             >
               <p className="text-red-400 text-sm">Failed to generate image.</p>
             </div>
-          ),
-        )}
+          );
+        })}
       </div>
     </div>
   );
