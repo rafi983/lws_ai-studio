@@ -2,27 +2,40 @@ import React, { useState, useEffect, useRef } from "react";
 import ImageCard from "../components/ImageCard";
 import { useDownloads } from "../context/DownloadsContext";
 
-// Function to load initial state from localStorage
+/**
+ * CORRECTED:
+ * - Re-introduced the logic to create temporary `blob:` URLs for safe, in-browser display.
+ * - The image object now has two URL properties:
+ * - `displayUrl`: The temporary blob URL for the <img> tag.
+ * - `permanentUrl`: The original API URL, used for downloading and saving to history.
+ * - handleDownload now correctly uses the permanentUrl.
+ * - localStorage now saves the object with the permanentUrl.
+ */
 const loadInitialGeneratedData = () => {
   try {
     const data = localStorage.getItem("lws-ai-generated-data");
     if (data) {
       const parsedData = JSON.parse(data);
-      // Basic validation
       if (parsedData.prompt && Array.isArray(parsedData.images)) {
+        // Map the stored permanent URLs to display URLs for rendering
+        parsedData.images = parsedData.images.map((img) => ({
+          ...img,
+          displayUrl: img.permanentUrl,
+        }));
         return parsedData;
       }
     }
   } catch (error) {
     console.error("Could not load generated data from local storage", error);
   }
-  return { prompt: "", images: [] };
+  return { prompt: "", images: [], model: "playground-v2.5" };
 };
 
 const CreateImagePage = () => {
   const [initialData] = useState(loadInitialGeneratedData);
   const [prompt, setPrompt] = useState(initialData.prompt);
   const [images, setImages] = useState(initialData.images);
+  const [model, setModel] = useState(initialData.model);
 
   const [width, setWidth] = useState(1024);
   const [height, setHeight] = useState(1024);
@@ -34,34 +47,26 @@ const CreateImagePage = () => {
   const { dispatch } = useDownloads();
   const blobUrlsRef = useRef([]);
 
-  // Save prompt to localStorage whenever it changes
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      const currentData = loadInitialGeneratedData();
-      currentData.prompt = prompt;
-      localStorage.setItem(
-        "lws-ai-generated-data",
-        JSON.stringify(currentData),
-      );
-    }, 500); // Debounce to avoid excessive writes
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [prompt]);
-
-  // Save generated images to localStorage
   useEffect(() => {
     try {
-      const currentData = { prompt, images };
+      // Save only the permanent URLs to localStorage
+      const imagesToStore = images.map(
+        ({ permanentUrl, prompt, model, seed }) => ({
+          permanentUrl,
+          prompt,
+          model,
+          seed,
+        }),
+      );
+      const currentData = { prompt, images: imagesToStore, model };
       localStorage.setItem(
         "lws-ai-generated-data",
         JSON.stringify(currentData),
       );
     } catch (error) {
-      console.error("Could not save generated images to local storage", error);
+      console.error("Could not save generated data to local storage", error);
     }
-  }, [images, prompt]);
+  }, [prompt, images, model]);
 
   const generateImages = async () => {
     if (!prompt.trim()) {
@@ -71,16 +76,14 @@ const CreateImagePage = () => {
 
     setLoading(true);
     setError(null);
-    setImages([]); // Clear previous images before generating new ones
+    setImages([]);
 
-    // Revoke any old blob URLs to prevent memory leaks
     blobUrlsRef.current.forEach((url) => {
       if (url) URL.revokeObjectURL(url);
     });
     blobUrlsRef.current = [];
-    const generatedImageUrls = []; // To store permanent URLs for localStorage
+    const generatedImageObjects = [];
 
-    const model = "playground-v2.5";
     const baseSeed = seed
       ? parseInt(seed, 10)
       : Math.floor(Math.random() * 1000000000);
@@ -109,31 +112,48 @@ const CreateImagePage = () => {
           throw new Error("Invalid image response");
         }
 
+        // --- THIS IS THE CRITICAL FIX ---
         const blob = await res.blob();
         const blobUrl = URL.createObjectURL(blob);
-        blobUrlsRef.current.push(blobUrl); // Keep track for cleanup
-        generatedImageUrls.push(url); // Save the permanent URL
+        blobUrlsRef.current.push(blobUrl); // Track for cleanup
+
+        generatedImageObjects.push({
+          displayUrl: blobUrl, // For the <img> tag
+          permanentUrl: url, // For downloading & localStorage
+          prompt: prompt,
+          model: model,
+          seed: currentSeed,
+        });
       } catch (err) {
         console.warn(`❌ Failed to fetch image ${i + 1}:`, err.message);
-        generatedImageUrls.push(null); // Add a placeholder for failed images
+        generatedImageObjects.push(null);
       }
     }
 
-    setImages(generatedImageUrls);
+    setImages(generatedImageObjects);
     setLoading(false);
   };
 
-  const handleDownload = (url) => {
-    dispatch({ type: "ADD_DOWNLOAD", payload: { imageUrl: url, prompt } });
+  const handleDownload = (image) => {
+    // We create the object for the downloads context here
+    const downloadPayload = {
+      imageUrl: image.permanentUrl, // Save the permanent URL
+      prompt: image.prompt,
+      model: image.model,
+      seed: image.seed,
+    };
+    dispatch({ type: "ADD_DOWNLOAD", payload: downloadPayload });
 
-    // We can't download cross-origin images directly. We have to fetch them again.
-    fetch(url)
+    // We still use the permanentUrl to fetch the original data for download
+    fetch(image.permanentUrl)
       .then((res) => res.blob())
       .then((blob) => {
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = `image-${Date.now()}.png`;
+        a.download = `${image.prompt.slice(0, 20)}-${Date.now()}.png`;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(a.href);
       })
       .catch((err) => console.error("Failed to download image:", err));
@@ -146,7 +166,6 @@ const CreateImagePage = () => {
     "3:2": { width: 1620, height: 1080 },
   };
 
-  // Cleanup blob URLs on component unmount
   useEffect(() => {
     return () => {
       blobUrlsRef.current.forEach((url) => {
@@ -225,7 +244,6 @@ const CreateImagePage = () => {
         </div>
       </div>
 
-      {/* Advanced Settings Section Restored */}
       <div className="border border-zinc-700/70 mb-6 rounded-lg p-4">
         <h4 className="font-medium mb-4">Advanced Settings</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -233,11 +251,26 @@ const CreateImagePage = () => {
             <label className="block text-sm font-medium text-zinc-400 mb-1">
               Model
             </label>
-            <input
-              disabled
-              value="playground-v2.5 (auto-selected)"
-              className="w-full bg-zinc-900/10 px-3 py-2 text-zinc-500 border border-zinc-700/70 rounded-md cursor-not-allowed"
-            />
+            <select
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className="w-full bg-zinc-800 px-3 py-2 border border-zinc-700/70 rounded-md text-white hover:bg-zinc-700 cursor-pointer"
+            >
+              <optgroup label="Recommended">
+                <option value="playground-v2.5">Playground v2.5</option>
+                <option value="sdxl">Stable Diffusion XL</option>
+                <option value="dall-e-3">DALL-E 3</option>
+                <option value="flux-schnell">Flux (Fast)</option>
+              </optgroup>
+              <optgroup label="Artistic & Stylized">
+                <option value="openjourney">OpenJourney</option>
+                <option value="waifu-diffusion">Waifu Diffusion (Anime)</option>
+              </optgroup>
+              <optgroup label="Photorealistic">
+                <option value="realistic-vision">Realistic Vision</option>
+                <option value="absolute-reality">Absolute Reality</option>
+              </optgroup>
+            </select>
           </div>
 
           <div>
@@ -316,20 +349,15 @@ const CreateImagePage = () => {
 
       {loading && (
         <p className="text-center py-4 text-zinc-300">
-          Generating images... Please wait up to 1 minute per image.
+          Generating images... Please wait.
         </p>
       )}
       {error && <p className="text-center text-red-400">{error}</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {images.map((url, index) =>
-          url ? (
-            <ImageCard
-              key={index}
-              imageUrl={url}
-              prompt={prompt}
-              onDownload={handleDownload}
-            />
+        {images.map((image, index) =>
+          image ? (
+            <ImageCard key={index} image={image} onDownload={handleDownload} />
           ) : (
             <div
               key={index}

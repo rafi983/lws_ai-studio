@@ -1,9 +1,14 @@
 import React, { useState } from "react";
 
-export default function ImageCard({ imageUrl, prompt, onDownload }) {
+/**
+ * CORRECTED:
+ * - The <img> tag now uses `image.displayUrl` for rendering the image.
+ * - The rest of the logic remains the same.
+ */
+export default function ImageCard({ image, onDownload }) {
   const [hasError, setHasError] = useState(false);
 
-  if (hasError || !imageUrl) {
+  if (hasError || !image?.displayUrl) {
     return (
       <div className="w-full h-48 bg-zinc-800 rounded-xl flex items-center justify-center text-center p-4">
         <p className="text-zinc-400 text-sm">Unable to load image.</p>
@@ -12,11 +17,12 @@ export default function ImageCard({ imageUrl, prompt, onDownload }) {
   }
 
   return (
-    <div className="image-card rounded-xl overflow-hidden cursor-pointer relative group">
+    <div className="image-card rounded-xl overflow-hidden cursor-pointer relative group bg-zinc-900">
+      {/* Download Button */}
       {onDownload && (
         <div
-          className="absolute bottom-2 right-2 p-2 bg-black/50 rounded-full hover:bg-black/80 transition-all z-10"
-          onClick={() => onDownload(imageUrl)}
+          className="absolute top-2 right-2 p-2 bg-black/50 rounded-full hover:bg-black/80 transition-all z-20"
+          onClick={() => onDownload(image)}
           title="Download Image"
         >
           <svg
@@ -36,12 +42,24 @@ export default function ImageCard({ imageUrl, prompt, onDownload }) {
           </svg>
         </div>
       )}
+
+      {/* Image Display - Using the correct displayUrl */}
       <img
-        src={imageUrl}
-        alt={prompt || "Generated AI"}
-        className="w-full h-48 object-cover rounded"
+        src={image.displayUrl}
+        alt={image.prompt || "Generated AI"}
+        className="w-full h-48 object-cover group-hover:opacity-80 transition-opacity"
         onError={() => setHasError(true)}
       />
+
+      {/* Verification Info Overlay */}
+      <div className="absolute bottom-0 left-0 w-full p-2 bg-gradient-to-t from-black/80 to-transparent">
+        <p
+          className="text-white text-xs font-semibold truncate"
+          title={image.model}
+        >
+          Model: {image.model}
+        </p>
+      </div>
     </div>
   );
 }

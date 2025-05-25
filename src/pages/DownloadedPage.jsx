@@ -2,6 +2,10 @@ import React from "react";
 import { useDownloads } from "../context/DownloadsContext.jsx";
 import ImageCard from "../components/ImageCard";
 
+/**
+ * UPDATED:
+ * - Passes the entire `image` object from the downloads context to the ImageCard component.
+ */
 const DownloadedPage = () => {
   const { state } = useDownloads();
 
@@ -20,8 +24,7 @@ const DownloadedPage = () => {
           {state.downloads.map((image) => (
             <ImageCard
               key={image.imageUrl}
-              imageUrl={image.imageUrl}
-              prompt={image.prompt}
+              image={image} // Pass the entire image object
             />
           ))}
         </div>
