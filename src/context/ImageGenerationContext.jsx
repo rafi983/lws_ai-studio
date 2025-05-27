@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useRef,
 } from "react";
+import toast from "react-hot-toast";
 
 const ImageGenerationContext = createContext();
 
@@ -141,9 +142,13 @@ export const ImageGenerationProvider = ({ children }) => {
   }, [state.prompt, state.images, state.model, state.loading]);
 
   const generateImages = async () => {
-    if (!state.prompt.trim()) return;
+    if (!state.prompt.trim()) {
+      toast.error("Please enter a prompt!");
+      return;
+    }
 
     dispatch({ type: "START_LOADING" });
+    const loadingToastId = toast.loading("Generating images...");
 
     blobUrlsRef.current.forEach((url) => url && URL.revokeObjectURL(url));
     blobUrlsRef.current = [];
@@ -151,6 +156,8 @@ export const ImageGenerationProvider = ({ children }) => {
     const baseSeed = state.seed
       ? parseInt(state.seed, 10)
       : Math.floor(Math.random() * 1000000000);
+
+    let successCount = 0;
 
     for (let i = 0; i < 9; i++) {
       const currentSeed = state.seed ? baseSeed : baseSeed + i;
@@ -183,6 +190,7 @@ export const ImageGenerationProvider = ({ children }) => {
           width: state.width,
           height: state.height,
         };
+        successCount++;
       } catch (err) {
         console.warn(`❌ Failed to fetch image ${i + 1}:`, err.message);
       }
@@ -197,6 +205,15 @@ export const ImageGenerationProvider = ({ children }) => {
     }
 
     dispatch({ type: "FINISH_LOADING" });
+    toast.dismiss(loadingToastId);
+
+    if (successCount > 0) {
+      toast.success(
+        `Generated ${successCount} image${successCount > 1 ? "s" : ""}!`,
+      );
+    } else {
+      toast.error("Failed to generate images.");
+    }
   };
 
   useEffect(() => {

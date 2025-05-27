@@ -1,8 +1,9 @@
+// src/context/DownloadsContext.jsx
+
 import React, { createContext, useContext, useReducer, useEffect } from "react";
 
 const DownloadsContext = createContext();
 
-// Function to load the initial state from localStorage
 const loadInitialState = () => {
   try {
     const serializedState = localStorage.getItem("lws-ai-downloads");
@@ -10,7 +11,6 @@ const loadInitialState = () => {
       return { downloads: [] };
     }
     const storedState = JSON.parse(serializedState);
-    // Basic validation to ensure we have an array
     if (Array.isArray(storedState.downloads)) {
       return storedState;
     }
@@ -23,10 +23,10 @@ const loadInitialState = () => {
 const downloadsReducer = (state, action) => {
   switch (action.type) {
     case "ADD_DOWNLOAD":
-      // Prevent adding duplicate images
+      // FIX: Check for duplicates using the permanentUrl to ensure consistency
       if (
         state.downloads.find(
-          (item) => item.imageUrl === action.payload.imageUrl,
+          (item) => item.permanentUrl === action.payload.permanentUrl,
         )
       ) {
         return state;
@@ -44,7 +44,6 @@ export const DownloadsProvider = ({ children }) => {
     loadInitialState,
   );
 
-  // useEffect hook to save state to localStorage whenever it changes
   useEffect(() => {
     try {
       const serializedState = JSON.stringify(state);

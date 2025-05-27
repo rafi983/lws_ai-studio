@@ -53,14 +53,16 @@ const CreateImagePage = () => {
 
   const handleDownload = (image) => {
     const downloadPayload = {
-      imageUrl: image.permanentUrl,
+      permanentUrl: image.permanentUrl, // ✅ Important: Include permanentUrl for DownloadsContext
       prompt: image.prompt,
       model: image.model,
       seed: image.seed,
       width: image.width,
       height: image.height,
     };
+
     downloadDispatch({ type: "ADD_DOWNLOAD", payload: downloadPayload });
+
     toast.success("Download started!");
     fetch(image.permanentUrl)
       .then((res) => res.blob())
