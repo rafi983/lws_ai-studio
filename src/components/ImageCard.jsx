@@ -1,15 +1,7 @@
 import React, { useState } from "react";
 
-/**
- * CORRECTED:
- * - Made the component more robust by checking for `image.displayUrl` OR `image.imageUrl`.
- * - This ensures the card works correctly on both the "Create" page and the "Downloaded" page.
- */
-export default function ImageCard({ image, onDownload }) {
+export default function ImageCard({ image, onDownload, onClick }) {
   const [hasError, setHasError] = useState(false);
-
-  // --- THIS IS THE FIX ---
-  // The component now correctly finds the URL to display from either property.
   const imageUrlToDisplay = image.displayUrl || image.imageUrl;
 
   if (hasError || !imageUrlToDisplay) {
@@ -21,14 +13,20 @@ export default function ImageCard({ image, onDownload }) {
   }
 
   return (
-    <div className="image-card rounded-xl overflow-hidden cursor-pointer relative group bg-zinc-900">
-      {/* Download Button */}
+    <div
+      className="image-card rounded-xl overflow-hidden cursor-pointer relative group bg-zinc-900"
+      onClick={onClick} // 💡 Pass click handler
+    >
       {onDownload && (
         <div
           className="absolute top-2 right-2 p-2 bg-black/50 rounded-full hover:bg-black/80 transition-all z-20"
-          onClick={() => onDownload(image)}
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent modal opening when download clicked
+            onDownload(image);
+          }}
           title="Download Image"
         >
+          {/* SVG Download Icon */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="20"
@@ -47,7 +45,6 @@ export default function ImageCard({ image, onDownload }) {
         </div>
       )}
 
-      {/* Image Display - Using the flexible imageUrlToDisplay variable */}
       <img
         src={imageUrlToDisplay}
         alt={image.prompt || "Generated AI"}
@@ -55,8 +52,7 @@ export default function ImageCard({ image, onDownload }) {
         onError={() => setHasError(true)}
       />
 
-      {/* Verification Info Overlay */}
-      {image.model && ( // Only show this if model info exists
+      {image.model && (
         <div className="absolute bottom-0 left-0 w-full p-2 bg-gradient-to-t from-black/80 to-transparent">
           <p
             className="text-white text-xs font-semibold truncate"

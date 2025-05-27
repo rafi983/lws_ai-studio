@@ -2,10 +2,6 @@ import React from "react";
 import { useDownloads } from "../context/DownloadsContext.jsx";
 import ImageCard from "../components/ImageCard";
 
-/**
- * UPDATED:
- * - Passes the entire `image` object from the downloads context to the ImageCard component.
- */
 const DownloadedPage = () => {
   const { state } = useDownloads();
 

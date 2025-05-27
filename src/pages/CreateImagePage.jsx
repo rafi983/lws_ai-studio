@@ -84,6 +84,8 @@ const CreateImagePage = () => {
                 prompt: img.prompt,
                 model: img.model,
                 seed: img.seed,
+                width: img.width,
+                height: img.height,
               };
             if (img === null) return null;
             return undefined;
@@ -109,6 +111,8 @@ const CreateImagePage = () => {
   };
 
   const generateImages = async () => {
+    console.log(`Generating image with width: ${width}, height: ${height}`);
+
     if (!prompt.trim()) {
       toast.error("Please enter a prompt.");
       return;
@@ -136,7 +140,9 @@ const CreateImagePage = () => {
         seed: currentSeed,
       });
       if (noLogo) params.append("nologo", "true");
-      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${params.toString()}`;
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(
+        prompt,
+      )}?${params.toString()}`;
 
       let resultObject = null;
       try {
@@ -155,6 +161,8 @@ const CreateImagePage = () => {
           prompt,
           model,
           seed: currentSeed,
+          width, // Added!
+          height, // Added!
         };
       } catch (err) {
         console.warn(`❌ Failed to fetch image ${i + 1}:`, err.message);
@@ -177,6 +185,8 @@ const CreateImagePage = () => {
       prompt: image.prompt,
       model: image.model,
       seed: image.seed,
+      width: image.width,
+      height: image.height,
     };
     dispatch({ type: "ADD_DOWNLOAD", payload: downloadPayload });
     toast.success("Download started!");
@@ -185,7 +195,9 @@ const CreateImagePage = () => {
       .then((blob) => {
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = `${image.prompt.slice(0, 20).replace(/[^a-zA-Z0-9]/g, "_")}-${Date.now()}.png`;
+        a.download = `${image.prompt
+          .slice(0, 20)
+          .replace(/[^a-zA-Z0-9]/g, "_")}-${Date.now()}.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

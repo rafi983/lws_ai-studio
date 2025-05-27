@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import ImageCard from "./ImageCard";
 import ImageSkeleton from "./ImageSkeleton";
 import FailedImageCard from "./FailedImageCard";
+import ImageModal from "./ImageModal";
 
 const ImageGrid = ({ images, loading, error, onDownload }) => {
+  const [modalImage, setModalImage] = useState(null);
+
   return (
     <>
       {loading && images.every((img) => img && img.isLoading) && (
@@ -23,11 +26,17 @@ const ImageGrid = ({ images, loading, error, onDownload }) => {
                 key={image.permanentUrl || index}
                 image={image}
                 onDownload={onDownload}
+                onClick={() => setModalImage(image)} // 💡 Click to open modal
               />
             );
           return <FailedImageCard key={`failed-${index}`} />;
         })}
       </div>
+
+      {/* Modal */}
+      {modalImage && (
+        <ImageModal image={modalImage} onClose={() => setModalImage(null)} />
+      )}
     </>
   );
 };
