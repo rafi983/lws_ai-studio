@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import PromptInput from "../components/PromptInput";
 import AdvancedSettings from "../components/AdvancedSettings";
 import ImageGrid from "../components/ImageGrid";
+import PromptHistory from "../components/PromptHistory";
 import { useDownloads } from "../context/DownloadsContext";
 import toast from "react-hot-toast";
 
@@ -38,11 +39,18 @@ const CreateImagePage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const [promptHistory, setPromptHistory] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("lws-ai-prompt-history")) || [];
+    } catch {
+      return [];
+    }
+  });
+
   const { dispatch } = useDownloads();
   const blobUrlsRef = useRef([]);
   const [userChangedPrompt, setUserChangedPrompt] = useState(false);
 
-  // Fetch models
   useEffect(() => {
     const fetchModels = async () => {
       setModelsLoading(true);
@@ -60,7 +68,8 @@ const CreateImagePage = () => {
           setModel(modelList[0]?.value || "playground-v2.5");
         }
       } catch (err) {
-        toast.error("Could not fetch AI models.");
+        console.error("Error fetching models:", err);
+        toast.error("Could not fetch AI models. Using fallback.");
         setAvailableModels([
           { value: "playground-v2.5", label: "Playground V2.5 (Fallback)" },
         ]);
@@ -72,7 +81,6 @@ const CreateImagePage = () => {
     fetchModels();
   }, []);
 
-  // Persist data to localStorage
   useEffect(() => {
     if (!loading) {
       try {
@@ -108,6 +116,15 @@ const CreateImagePage = () => {
   const handlePromptChange = (e) => {
     setPrompt(e.target.value);
     setUserChangedPrompt(true);
+  };
+
+  const handleSelectPrompt = (selected) => {
+    setPrompt(selected);
+  };
+
+  const handleClearHistory = () => {
+    setPromptHistory([]);
+    localStorage.removeItem("lws-ai-prompt-history");
   };
 
   const generateImages = async () => {
@@ -161,8 +178,8 @@ const CreateImagePage = () => {
           prompt,
           model,
           seed: currentSeed,
-          width, // Added!
-          height, // Added!
+          width,
+          height,
         };
       } catch (err) {
         console.warn(`❌ Failed to fetch image ${i + 1}:`, err.message);
@@ -173,6 +190,18 @@ const CreateImagePage = () => {
         return newImages;
       });
     }
+
+    // Update prompt history with first image preview
+    const updatedHistory = [
+      { prompt: prompt.trim(), imageUrl: blobUrlsRef.current[0] },
+      ...promptHistory.filter((item) => item.prompt !== prompt.trim()),
+    ].slice(0, 20);
+
+    setPromptHistory(updatedHistory);
+    localStorage.setItem(
+      "lws-ai-prompt-history",
+      JSON.stringify(updatedHistory),
+    );
 
     toast.dismiss(loadingToast);
     toast.success("Images generated successfully!");
@@ -220,6 +249,13 @@ const CreateImagePage = () => {
       <h2 className="text-4xl font-bold mb-8">
         Let's create a masterpiece, Alvian! <span className="text-2xl">👋</span>
       </h2>
+
+      <PromptHistory
+        history={promptHistory}
+        onSelect={handleSelectPrompt}
+        onClear={handleClearHistory}
+      />
+
       <PromptInput
         prompt={prompt}
         onChange={handlePromptChange}
@@ -227,6 +263,7 @@ const CreateImagePage = () => {
         loading={loading}
         modelsLoading={modelsLoading}
       />
+
       <AdvancedSettings
         model={model}
         setModel={setModel}
@@ -241,6 +278,7 @@ const CreateImagePage = () => {
         noLogo={noLogo}
         setNoLogo={setNoLogo}
       />
+
       <ImageGrid
         images={images}
         loading={loading}
