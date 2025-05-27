@@ -27,6 +27,14 @@ const Header = ({ currentPage, navigate }) => {
             Downloaded
           </a>
         </li>
+        <li>
+          <a
+            onClick={() => navigate("favourites")}
+            className={`${linkClasses} ${currentPage === "favourites" ? activeLinkClasses : ""}`}
+          >
+            Favourites
+          </a>
+        </li>
       </ul>
     </header>
   );
