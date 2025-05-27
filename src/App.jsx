@@ -3,6 +3,7 @@ import Layout from "./components/Layout";
 import Header from "./components/Header";
 import CreateImagePage from "./pages/CreateImagePage";
 import DownloadedPage from "./pages/DownloadedPage";
+import { ImageGenerationProvider } from "./context/ImageGenerationContext.jsx";
 import { DownloadsProvider } from "./context/DownloadsContext.jsx";
 import { FavouritesProvider } from "./context/FavouritesContext.jsx";
 import FavouritesPage from "./pages/FavouritesPage.jsx";
@@ -17,14 +18,16 @@ function App() {
   return (
     <DownloadsProvider>
       <FavouritesProvider>
-        <Layout>
-          <Header currentPage={currentPage} navigate={navigate} />
-          <main className="relative z-10">
-            {currentPage === "create" && <CreateImagePage />}
-            {currentPage === "downloaded" && <DownloadedPage />}
-            {currentPage === "favourites" && <FavouritesPage />}
-          </main>
-        </Layout>
+        <ImageGenerationProvider>
+          <Layout>
+            <Header currentPage={currentPage} navigate={navigate} />
+            <main className="relative z-10">
+              {currentPage === "create" && <CreateImagePage />}
+              {currentPage === "downloaded" && <DownloadedPage />}
+              {currentPage === "favourites" && <FavouritesPage />}
+            </main>
+          </Layout>
+        </ImageGenerationProvider>
       </FavouritesProvider>
     </DownloadsProvider>
   );

@@ -1,4 +1,3 @@
-// src/components/ImageModal.jsx
 import React from "react";
 
 const ImageModal = ({ image, onClose }) => {
@@ -10,13 +9,12 @@ const ImageModal = ({ image, onClose }) => {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-      onClick={onClose} // Close on clicking backdrop
+      onClick={onClose}
     >
       <div
         className="bg-zinc-900 text-white max-w-3xl w-full p-6 rounded-lg relative"
-        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button */}
         <button
           className="absolute top-3 right-3 text-zinc-400 hover:text-white"
           onClick={onClose}
@@ -37,14 +35,12 @@ const ImageModal = ({ image, onClose }) => {
           </svg>
         </button>
 
-        {/* Image */}
         <img
           src={image.displayUrl || image.imageUrl}
           alt={image.prompt || "Generated Image"}
           className="w-full h-auto max-h-[60vh] object-contain mb-4 rounded"
         />
 
-        {/* Metadata */}
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-zinc-400">Prompt:</span>

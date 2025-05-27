@@ -19,16 +19,18 @@ const PromptHistory = ({ history, onSelect, onClear }) => {
   const [justAddedPrompt, setJustAddedPrompt] = useState(null);
 
   useEffect(() => {
-    if (history.length > 0) {
-      const latestPrompt = history[0]?.prompt || history[0];
+    if (history && history.length > 0) {
+      const latestPrompt = history[0]?.prompt;
       setJustAddedPrompt(latestPrompt);
       const timer = setTimeout(() => setJustAddedPrompt(null), 2000);
       return () => clearTimeout(timer);
     }
   }, [history]);
 
-  const filteredHistory = history.filter((item) =>
-    (item?.prompt || item || "").toLowerCase().includes(search.toLowerCase()),
+  const filteredHistory = (history || []).filter((item) =>
+    String(item?.prompt || "")
+      .toLowerCase()
+      .includes(search.toLowerCase()),
   );
 
   return (
@@ -40,10 +42,10 @@ const PromptHistory = ({ history, onSelect, onClear }) => {
             onClick={() => setCollapsed(!collapsed)}
           >
             <ChevronIcon collapsed={collapsed} />
-            Prompt History {history.length > 0 && `(${history.length})`}
+            Prompt History {history?.length > 0 && `(${history.length})`}
           </button>
         </h4>
-        {history.length > 0 && (
+        {history?.length > 0 && (
           <button
             className="text-xs text-red-400 hover:underline"
             onClick={onClear}
@@ -72,30 +74,25 @@ const PromptHistory = ({ history, onSelect, onClear }) => {
               No prompt history yet. Start generating!
             </li>
           ) : (
-            filteredHistory.map((item, index) => {
-              const promptText = item?.prompt || item;
-              const imageUrl = item?.imageUrl;
-
-              return (
-                <li
-                  key={index}
-                  onClick={() => onSelect(promptText)}
-                  className={`flex items-center gap-2 text-sm cursor-pointer truncate px-2 py-1 rounded transition-colors
-                    ${promptText === justAddedPrompt ? "animate-pulse bg-green-600/20" : ""}
-                    hover:bg-zinc-800/40 hover:text-white text-zinc-300`}
-                  title={promptText}
-                >
-                  {imageUrl && (
-                    <img
-                      src={imageUrl}
-                      alt="Thumbnail"
-                      className="h-5 w-5 rounded object-cover flex-shrink-0"
-                    />
-                  )}
-                  <span className="truncate">{promptText}</span>
-                </li>
-              );
-            })
+            filteredHistory.map((item, index) => (
+              <li
+                key={index}
+                onClick={() => onSelect(item.prompt)}
+                className={`flex items-center gap-2 text-sm cursor-pointer truncate px-2 py-1 rounded transition-colors
+                  ${item.prompt === justAddedPrompt ? "animate-pulse bg-green-600/20" : ""}
+                  hover:bg-zinc-800/40 hover:text-white text-zinc-300`}
+                title={item.prompt}
+              >
+                {item.imageUrl && (
+                  <img
+                    src={item.imageUrl}
+                    alt="Thumbnail"
+                    className="h-5 w-5 rounded object-cover flex-shrink-0"
+                  />
+                )}
+                <span className="truncate">{item.prompt}</span>
+              </li>
+            ))
           )}
         </ul>
       </div>
