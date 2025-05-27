@@ -9,9 +9,8 @@ const AdvancedSettings = ({
   seed,
   setSeed,
   width,
-  setWidth,
   height,
-  setHeight,
+  setDimensions,
   noLogo,
   setNoLogo,
 }) => {
@@ -54,7 +53,7 @@ const AdvancedSettings = ({
           <input
             type="number"
             value={width}
-            onChange={(e) => setWidth(Number(e.target.value))}
+            onChange={(e) => setDimensions(Number(e.target.value), height)}
             className="w-full bg-zinc-900/10 px-3 py-2 border border-zinc-700/70 rounded-md text-white"
           />
         </div>
@@ -66,7 +65,7 @@ const AdvancedSettings = ({
           <input
             type="number"
             value={height}
-            onChange={(e) => setHeight(Number(e.target.value))}
+            onChange={(e) => setDimensions(width, Number(e.target.value))}
             className="w-full bg-zinc-900/10 px-3 py-2 border border-zinc-700/70 rounded-md text-white"
           />
         </div>
@@ -79,10 +78,7 @@ const AdvancedSettings = ({
             {Object.entries(ratioPresets).map(([label, val]) => (
               <button
                 key={label}
-                onClick={() => {
-                  setWidth(val.width);
-                  setHeight(val.height);
-                }}
+                onClick={() => setDimensions(val.width, val.height)}
                 className="bg-zinc-900/10 px-3 py-2 text-xs hover:bg-zinc-800 rounded transition-colors"
               >
                 {label}

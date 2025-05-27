@@ -53,7 +53,7 @@ const CreateImagePage = () => {
 
   const handleDownload = (image) => {
     const downloadPayload = {
-      permanentUrl: image.permanentUrl, // ✅ Important: Include permanentUrl for DownloadsContext
+      permanentUrl: image.permanentUrl,
       prompt: image.prompt,
       model: image.model,
       seed: image.seed,
@@ -115,17 +115,11 @@ const CreateImagePage = () => {
         seed={state.seed}
         setSeed={(value) => dispatch({ type: "SET_SEED", payload: value })}
         width={state.width}
-        setWidth={(value) =>
-          dispatch({
-            type: "SET_DIMENSIONS",
-            payload: { width: value, height: state.height },
-          })
-        }
         height={state.height}
-        setHeight={(value) =>
+        setDimensions={(width, height) =>
           dispatch({
             type: "SET_DIMENSIONS",
-            payload: { width: state.width, height: value },
+            payload: { width, height },
           })
         }
         noLogo={state.noLogo}
