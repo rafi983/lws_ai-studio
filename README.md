@@ -14,8 +14,6 @@ A feature-rich, single-page web application that provides a user-friendly studio
 - [Project Setup](#project-setup)
 - [Available Scripts](#available-scripts)
 - [File Structure](#file-structure)
-- [License](#license)
-- [Acknowledgments](#acknowledgments)
 
 ---
 
@@ -103,6 +101,7 @@ Builds the app for production to the `dist` folder (Vite default). It correctly 
 
 The project follows a standard React application structure, organized for scalability and maintainability.
 
+```text
 /src
 ├── /api         # Centralized API call logic (pollinationsAPI.js)
 ├── /assets      # Static assets like logos, images
@@ -111,5 +110,3 @@ The project follows a standard React application structure, organized for scalab
 ├── /pages       # Main page components (CreateImagePage, FavouritesPage, etc.)
 ├── App.jsx      # Main application component
 └── main.jsx     # Entry point of the application (Vite default)
-
----
