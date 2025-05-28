@@ -1,5 +1,3 @@
-// src/context/DownloadsContext.jsx
-
 import React, { createContext, useContext, useReducer, useEffect } from "react";
 
 const DownloadsContext = createContext();
@@ -23,15 +21,18 @@ const loadInitialState = () => {
 const downloadsReducer = (state, action) => {
   switch (action.type) {
     case "ADD_DOWNLOAD":
-      // FIX: Check for duplicates using the permanentUrl to ensure consistency
-      if (
-        state.downloads.find(
-          (item) => item.permanentUrl === action.payload.permanentUrl,
-        )
-      ) {
+      const image = { ...action.payload };
+
+      if (!image.id) {
+        image.id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      }
+
+      if (state.downloads.find((item) => item.id === image.id)) {
         return state;
       }
-      return { ...state, downloads: [action.payload, ...state.downloads] };
+
+      return { ...state, downloads: [image, ...state.downloads] };
+
     default:
       return state;
   }
