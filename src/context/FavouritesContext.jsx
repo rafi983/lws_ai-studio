@@ -12,10 +12,10 @@ const reducer = (state, action) => {
       const image = action.payload;
       const newFavourites = { ...state.favourites };
 
-      if (newFavourites[image.permanentUrl]) {
-        delete newFavourites[image.permanentUrl];
+      if (newFavourites[image.id]) {
+        delete newFavourites[image.id];
       } else {
-        newFavourites[image.permanentUrl] = image;
+        newFavourites[image.id] = image;
       }
 
       localStorage.setItem("lws-ai-favourites", JSON.stringify(newFavourites));

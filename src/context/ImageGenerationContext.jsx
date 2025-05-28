@@ -118,6 +118,7 @@ export const ImageGenerationProvider = ({ children }) => {
           .map((img) => {
             if (img && !img.isLoading)
               return {
+                id: img.id,
                 permanentUrl: img.permanentUrl,
                 prompt: img.prompt,
                 model: img.model,
@@ -175,6 +176,11 @@ export const ImageGenerationProvider = ({ children }) => {
           seed: currentSeed,
           noLogo: state.noLogo,
         });
+
+        if (resultObject) {
+          resultObject.id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        }
+
         blobUrlsRef.current.push(resultObject.displayUrl);
         successCount++;
       } catch (err) {
