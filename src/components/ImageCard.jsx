@@ -9,7 +9,8 @@ export default function ImageCard({ image, onDownload }) {
 
   const isFav = !!state.favourites[image.permanentUrl];
 
-  const toggleFav = () => {
+  const toggleFav = (e) => {
+    e.stopPropagation();
     dispatch({ type: "TOGGLE_FAVOURITE", payload: image });
   };
 
@@ -25,14 +26,16 @@ export default function ImageCard({ image, onDownload }) {
 
   return (
     <>
-      <div className="relative group rounded-xl overflow-hidden bg-zinc-900">
+      <div
+        className="relative group rounded-xl overflow-hidden bg-zinc-900"
+        onClick={() => setModalOpen(true)}
+      >
         <img
           src={imageUrlToDisplay}
           alt={image.prompt || "Generated AI"}
           className="w-full h-48 object-cover group-hover:opacity-80 transition-opacity cursor-pointer"
           onError={() => setHasError(true)}
-          onClick={() => setModalOpen(true)}
-          loading="lazy" // <-- THIS IS THE ONLY CHANGE
+          loading="lazy"
         />
 
         {isFav && (
@@ -75,8 +78,8 @@ export default function ImageCard({ image, onDownload }) {
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="white"
@@ -84,9 +87,9 @@ export default function ImageCard({ image, onDownload }) {
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <path d="M12 17V3" />
-                <path d="m6 11 6 6 6-6" />
-                <path d="M19 21H5" />
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
             </button>
           )}

@@ -1,38 +1,33 @@
-// src/pages/FavouritesPage.jsx
-
 import React from "react";
 import { useFavourites } from "../context/FavouritesContext";
-import { useDownloads } from "../context/DownloadsContext"; // FIX: Import useDownloads
+import { useDownloads } from "../context/DownloadsContext";
 import ImageCard from "../components/ImageCard";
+import toast from "react-hot-toast";
 
 const FavouritesPage = () => {
-  const { state } = useFavourites();
-  const { dispatch: dispatchDownload } = useDownloads(); // FIX: Get the dispatch function for downloads
-  const favourites = Object.values(state.favourites);
+  const { state: favState } = useFavourites();
+  const { dispatch: downloadDispatch } = useDownloads();
+  const favourites = Object.values(favState.favourites);
 
   const handleDownload = (image) => {
+    dispatchDownload({
+      type: "ADD_DOWNLOAD",
+      payload: image,
+    });
+
+    toast.success("Download started!");
     fetch(image.permanentUrl)
       .then((res) => res.blob())
       .then((blob) => {
-        const tempUrl = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.href = tempUrl;
+        a.href = URL.createObjectURL(blob);
         a.download = `${image.prompt.slice(0, 20).replace(/[^a-zA-Z0-9]/g, "_")}-${Date.now()}.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-
-        // FIX: Dispatch to add the image to downloads context
-        // We spread the original image to retain permanentUrl and add the temporary imageUrl
-        dispatchDownload({
-          type: "ADD_DOWNLOAD",
-          payload: { ...image, imageUrl: tempUrl },
-        });
-
-        // Note: We don't revoke the URL here, as it's needed for display on the downloads page.
-        // URL.revokeObjectURL(a.href); // This would break the image display
+        URL.revokeObjectURL(a.href);
       })
-      .catch(() => console.error("Download failed"));
+      .catch(() => toast.error("Download failed."));
   };
 
   return (
