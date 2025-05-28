@@ -6,6 +6,7 @@ import React, {
   useRef,
 } from "react";
 import toast from "react-hot-toast";
+import { generateImageFromApi } from "../api/pollinationsAPI";
 
 const ImageGenerationContext = createContext();
 
@@ -25,11 +26,10 @@ const initialState = {
 const reducer = (state, action) => {
   switch (action.type) {
     case "SET_PROMPT":
-      // When the user types a new prompt, update the text AND clear previous images.
       return {
         ...state,
         prompt: action.payload,
-        images: state.loading ? state.images : [], // Clear images if not loading
+        images: state.loading ? state.images : [],
       };
     case "SET_MODEL":
       return { ...state, model: action.payload };
@@ -83,7 +83,6 @@ export const ImageGenerationProvider = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const blobUrlsRef = useRef([]);
 
-  // Load saved data from localStorage
   useEffect(() => {
     const savedData = localStorage.getItem("lws-ai-generated-data");
     if (savedData) {
@@ -112,7 +111,6 @@ export const ImageGenerationProvider = ({ children }) => {
     }
   }, []);
 
-  // Save generated data to localStorage
   useEffect(() => {
     if (!state.loading && state.images.length > 0) {
       try {
@@ -166,48 +164,29 @@ export const ImageGenerationProvider = ({ children }) => {
 
     for (let i = 0; i < 9; i++) {
       const currentSeed = state.seed ? baseSeed : baseSeed + i;
-
-      const params = new URLSearchParams({
-        model: state.model,
-        width: state.width,
-        height: state.height,
-        seed: currentSeed,
-      });
-      if (state.noLogo) params.append("nologo", "true");
-      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(
-        state.prompt,
-      )}?${params.toString()}`;
-
       let resultObject = null;
+
       try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 60000);
-        const res = await fetch(url, { signal: controller.signal });
-        clearTimeout(timeout);
-        if (!res.ok || !res.headers.get("Content-Type")?.startsWith("image/"))
-          throw new Error("Invalid image response");
-        const blob = await res.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        blobUrlsRef.current.push(blobUrl);
-        resultObject = {
-          displayUrl: blobUrl,
-          permanentUrl: url,
+        resultObject = await generateImageFromApi({
           prompt: state.prompt,
           model: state.model,
-          seed: currentSeed,
           width: state.width,
           height: state.height,
-        };
+          seed: currentSeed,
+          noLogo: state.noLogo,
+        });
+        blobUrlsRef.current.push(resultObject.displayUrl);
         successCount++;
       } catch (err) {
         console.warn(`❌ Failed to fetch image ${i + 1}:`, err.message);
       }
+
       dispatch({ type: "SET_IMAGE", index: i, payload: resultObject });
 
       if (i === 0 && resultObject) {
         dispatch({
           type: "ADD_TO_HISTORY",
-          payload: { prompt: state.prompt, imageUrl: blobUrlsRef.current[0] },
+          payload: { prompt: state.prompt, imageUrl: resultObject.displayUrl },
         });
       }
     }
@@ -225,8 +204,11 @@ export const ImageGenerationProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    return () =>
-      blobUrlsRef.current.forEach((url) => url && URL.revokeObjectURL(url));
+    return () => {
+      blobUrlsRef.current.forEach((url) => {
+        if (url) URL.revokeObjectURL(url);
+      });
+    };
   }, []);
 
   return (

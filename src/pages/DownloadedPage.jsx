@@ -1,5 +1,3 @@
-// src/pages/DownloadedPage.jsx
-
 import React from "react";
 import { useDownloads } from "../context/DownloadsContext.jsx";
 import ImageCard from "../components/ImageCard";
@@ -19,13 +17,19 @@ const DownloadedPage = () => {
         </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {state.downloads.map((image) => (
-            <ImageCard
-              // FIX: Use the consistent, unique permanentUrl as the key
-              key={image.permanentUrl}
-              image={image}
-            />
-          ))}
+          {state.downloads.map((downloadedImage) => {
+            const imageForDisplay = {
+              ...downloadedImage,
+              displayUrl: downloadedImage.permanentUrl,
+            };
+
+            return (
+              <ImageCard
+                key={imageForDisplay.permanentUrl}
+                image={imageForDisplay}
+              />
+            );
+          })}
         </div>
       )}
     </>

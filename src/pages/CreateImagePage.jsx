@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import PromptInput from "../components/PromptInput";
 import AdvancedSettings from "../components/AdvancedSettings";
 import ImageGrid from "../components/ImageGrid";
 import PromptHistory from "../components/PromptHistory";
 import { useImageGeneration } from "../context/ImageGenerationContext";
 import { useDownloads } from "../context/DownloadsContext";
-import toast from "react-hot-toast";
+import { fetchAvailableModels } from "../api/pollinationsAPI";
 
 const CreateImagePage = () => {
   const { state, dispatch, generateImages } = useImageGeneration();
@@ -15,26 +16,23 @@ const CreateImagePage = () => {
   const [modelsLoading, setModelsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchModels = async () => {
+    const loadModels = async () => {
       setModelsLoading(true);
       try {
-        const response = await fetch("https://image.pollinations.ai/models");
-        const data = await response.json();
-        const modelList = data.map((modelName) => ({
-          value: modelName,
-          label: modelName
-            .replace(/-/g, " ")
-            .replace(/\b\w/g, (l) => l.toUpperCase()),
-        }));
+        const modelList = await fetchAvailableModels();
         setAvailableModels(modelList);
-        if (!modelList.some((m) => m.value === state.model)) {
+
+        const isCurrentModelAvailable = modelList.some(
+          (m) => m.value === state.model,
+        );
+        if (!isCurrentModelAvailable) {
           dispatch({
             type: "SET_MODEL",
             payload: modelList[0]?.value || "playground-v2.5",
           });
         }
       } catch (err) {
-        toast.error("Could not fetch AI models.");
+        toast.error(err.message);
         setAvailableModels([
           { value: "playground-v2.5", label: "Playground V2.5 (Fallback)" },
         ]);
@@ -44,8 +42,8 @@ const CreateImagePage = () => {
       }
     };
 
-    fetchModels();
-  }, [dispatch, state.model]);
+    loadModels();
+  }, [dispatch]);
 
   const handlePromptChange = (e) => {
     dispatch({ type: "SET_PROMPT", payload: e.target.value });
@@ -69,7 +67,9 @@ const CreateImagePage = () => {
       .then((blob) => {
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = `${image.prompt.slice(0, 20).replace(/[^a-zA-Z0-9]/g, "_")}-${Date.now()}.png`;
+        a.download = `${image.prompt
+          .slice(0, 20)
+          .replace(/[^a-zA-Z0-9]/g, "_")}-${Date.now()}.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

@@ -1,5 +1,3 @@
-// src/components/ImageCard.jsx
-
 import React, { useState } from "react";
 import { useFavourites } from "../context/FavouritesContext";
 import ImageModal from "./ImageModal";
@@ -9,18 +7,13 @@ export default function ImageCard({ image, onDownload }) {
   const [modalOpen, setModalOpen] = useState(false);
   const { state, dispatch } = useFavourites();
 
-  // This logic is correct
   const isFav = !!state.favourites[image.permanentUrl];
 
   const toggleFav = () => {
     dispatch({ type: "TOGGLE_FAVOURITE", payload: image });
   };
 
-  // --- THIS IS THE FIX ---
-  // Prioritize the temporary blob URL if it exists, otherwise use the other URLs.
-  // Your code had `image.displayUrl || image.imageUrl`, which we'll adjust for consistency.
-  const imageUrlToDisplay =
-    image.imageUrl || image.displayUrl || image.permanentUrl;
+  const imageUrlToDisplay = image.displayUrl || image.permanentUrl;
 
   if (hasError || !imageUrlToDisplay) {
     return (
@@ -39,6 +32,7 @@ export default function ImageCard({ image, onDownload }) {
           className="w-full h-48 object-cover group-hover:opacity-80 transition-opacity cursor-pointer"
           onError={() => setHasError(true)}
           onClick={() => setModalOpen(true)}
+          loading="lazy" // <-- THIS IS THE ONLY CHANGE
         />
 
         {isFav && (
@@ -70,11 +64,13 @@ export default function ImageCard({ image, onDownload }) {
             )}
           </button>
 
-          {/* This logic you already had is perfect. It connects to the context updater. */}
           {onDownload && (
             <button
               className="p-2 bg-black/50 rounded-full hover:bg-black/80 transition"
-              onClick={() => onDownload(image)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDownload(image);
+              }}
               title="Download"
             >
               <svg
