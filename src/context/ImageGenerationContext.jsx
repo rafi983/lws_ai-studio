@@ -160,7 +160,11 @@ export const ImageGenerationProvider = ({ children }) => {
     let successCount = 0;
 
     for (let i = 0; i < 9; i++) {
+      // --- Reverted to Original Seed Logic ---
+      // If a seed is present in the state, it uses that exact seed for all 9 images.
+      // If not, it uses a random seed and increments it for each image.
       const currentSeed = state.seed ? baseSeed : baseSeed + i;
+
       const params = new URLSearchParams({
         model: state.model,
         width: state.width,
@@ -168,7 +172,9 @@ export const ImageGenerationProvider = ({ children }) => {
         seed: currentSeed,
       });
       if (state.noLogo) params.append("nologo", "true");
-      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(state.prompt)}?${params.toString()}`;
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(
+        state.prompt,
+      )}?${params.toString()}`;
 
       let resultObject = null;
       try {
@@ -196,7 +202,7 @@ export const ImageGenerationProvider = ({ children }) => {
       }
       dispatch({ type: "SET_IMAGE", index: i, payload: resultObject });
 
-      if (i === 0) {
+      if (i === 0 && resultObject) {
         dispatch({
           type: "ADD_TO_HISTORY",
           payload: { prompt: state.prompt, imageUrl: blobUrlsRef.current[0] },
