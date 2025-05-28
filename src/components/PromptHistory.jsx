@@ -83,13 +83,6 @@ const PromptHistory = ({ history, onSelect, onClear }) => {
                   hover:bg-zinc-800/40 hover:text-white text-zinc-300`}
                 title={item.prompt}
               >
-                {item.imageUrl && (
-                  <img
-                    src={item.imageUrl}
-                    alt="Thumbnail"
-                    className="h-5 w-5 rounded object-cover flex-shrink-0"
-                  />
-                )}
                 <span className="truncate">{item.prompt}</span>
               </li>
             ))
