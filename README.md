@@ -1,4 +1,4 @@
-# LWS AI - AI Image Generation Studio by rafi
+# LWS AI - AI Image Generation Studio
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -115,4 +115,3 @@ The project follows a standard React application structure, organized for scalab
 └── main.jsx     # Entry point of the application (Vite default)
 
 ---
->>>>>>> c05bfa7bb38da5d034a25cbed847fb9ead1ee810
