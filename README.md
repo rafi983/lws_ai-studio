@@ -1,4 +1,4 @@
-# LWS AI - AI Image Generation Studio
+# LWS AI - AI Image Generation Studio by rafi
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -19,7 +19,7 @@ A feature-rich, single-page web application that provides a user-friendly studio
 
 ## Live Demo
 
-[Link to your deployed application would go here - e.g., https://your-app-name.netlify.app/](https://your-app-name.netlify.app/)
+https://ai-lws-studio.vercel.app/
 
 ---
 
@@ -109,4 +109,10 @@ The project follows a standard React application structure, organized for scalab
 ├── /context     # Global state management via Context API
 ├── /pages       # Main page components (CreateImagePage, FavouritesPage, etc.)
 ├── App.jsx      # Main application component
+<<<<<<< HEAD
 └── main.jsx     # Entry point of the application (Vite default)
+=======
+└── main.jsx     # Entry point of the application (Vite default)
+
+---
+>>>>>>> c05bfa7bb38da5d034a25cbed847fb9ead1ee810
