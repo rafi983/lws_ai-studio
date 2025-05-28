@@ -25,7 +25,12 @@ const initialState = {
 const reducer = (state, action) => {
   switch (action.type) {
     case "SET_PROMPT":
-      return { ...state, prompt: action.payload };
+      // When the user types a new prompt, update the text AND clear previous images.
+      return {
+        ...state,
+        prompt: action.payload,
+        images: state.loading ? state.images : [], // Clear images if not loading
+      };
     case "SET_MODEL":
       return { ...state, model: action.payload };
     case "SET_DIMENSIONS":
@@ -109,7 +114,7 @@ export const ImageGenerationProvider = ({ children }) => {
 
   // Save generated data to localStorage
   useEffect(() => {
-    if (!state.loading) {
+    if (!state.loading && state.images.length > 0) {
       try {
         const imagesToStore = state.images
           .map((img) => {
@@ -160,9 +165,6 @@ export const ImageGenerationProvider = ({ children }) => {
     let successCount = 0;
 
     for (let i = 0; i < 9; i++) {
-      // --- Reverted to Original Seed Logic ---
-      // If a seed is present in the state, it uses that exact seed for all 9 images.
-      // If not, it uses a random seed and increments it for each image.
       const currentSeed = state.seed ? baseSeed : baseSeed + i;
 
       const params = new URLSearchParams({
