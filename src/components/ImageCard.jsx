@@ -7,7 +7,8 @@ export default function ImageCard({ image, onDownload }) {
   const [modalOpen, setModalOpen] = useState(false);
   const { state, dispatch } = useFavourites();
 
-  const isFav = !!state.favourites[image.id];
+  const isFav =
+    !!state.favourites[image.id] || !!state.favourites[image.permanentUrl];
 
   const toggleFav = (e) => {
     e.stopPropagation();

@@ -10,9 +10,22 @@ const FavouritesPage = () => {
   const favourites = Object.values(favState.favourites);
 
   const handleDownload = (image) => {
+    // The image object from Favourites context should already have its original id
+    // We construct a payload to be explicit and ensure consistency.
+    const downloadPayload = {
+      id: image.id, // <-- ENSURE THIS IS PASSED
+      permanentUrl: image.permanentUrl,
+      prompt: image.prompt,
+      model: image.model,
+      seed: image.seed,
+      width: image.width,
+      height: image.height,
+      displayUrl: image.displayUrl, // Pass this along, DownloadsContext will clarify it
+    };
+
     dispatchDownload({
       type: "ADD_DOWNLOAD",
-      payload: image,
+      payload: downloadPayload,
     });
 
     toast.success("Download started!");
@@ -44,7 +57,7 @@ const FavouritesPage = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {favourites.map((image) => (
             <ImageCard
-              key={image.permanentUrl}
+              key={image.id || image.permanentUrl} // Use image.id as primary key
               image={image}
               onDownload={handleDownload}
             />

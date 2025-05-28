@@ -50,18 +50,22 @@ const CreateImagePage = () => {
   };
 
   const handleDownload = (image) => {
+    // Ensure all necessary properties, including the original id, are passed
     const downloadPayload = {
+      id: image.id, // <-- THIS LINE IS CRITICAL
       permanentUrl: image.permanentUrl,
       prompt: image.prompt,
       model: image.model,
       seed: image.seed,
       width: image.width,
       height: image.height,
+      displayUrl: image.displayUrl, // Pass this along, DownloadsContext will clarify it
     };
 
     downloadDispatch({ type: "ADD_DOWNLOAD", payload: downloadPayload });
 
     toast.success("Download started!");
+    // Fetch from permanentUrl for the actual download to ensure it's the canonical source
     fetch(image.permanentUrl)
       .then((res) => res.blob())
       .then((blob) => {
