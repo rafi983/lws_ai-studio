@@ -21,7 +21,7 @@ A feature-rich, single-page web application that provides a user-friendly studio
 
 ## Live Demo
 
-[Link to your deployed application would go here - e.g., https://your-app-name.netlify.app/](https://your-app-name.netlify.app/)
+https://ai-lws-studio.vercel.app/
 
 ---
 
