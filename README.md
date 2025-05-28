@@ -67,7 +67,7 @@ To get a local copy up and running, follow these simple steps.
 
 1.  **Clone the repository:**
     ```sh
-    git clone [https://github.com/rafi983/lws_ai-studio.git](https://github.com/rafi983/lws_ai-studio.git)
+    git clone https://github.com/rafi983/lws_ai-studio.git
     ```
 2.  **Navigate to the project directory:**
     ```sh
@@ -114,4 +114,3 @@ The project follows a standard React application structure, organized for scalab
 =======
 └── main.jsx     # Entry point of the application (Vite default)
 
----
