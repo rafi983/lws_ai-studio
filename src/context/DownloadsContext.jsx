@@ -2,65 +2,91 @@ import React, { createContext, useContext, useReducer, useEffect } from "react";
 
 const DownloadsContext = createContext();
 
+const ActionTypes = {
+  ADD_DOWNLOAD: "ADD_DOWNLOAD",
+};
+
+const LOCAL_STORAGE_DOWNLOADS_KEY = "lws-ai-downloads";
+
 const loadInitialState = () => {
   try {
-    const serializedState = localStorage.getItem("lws-ai-downloads");
+    const serializedState = localStorage.getItem(LOCAL_STORAGE_DOWNLOADS_KEY);
     if (serializedState === null) {
       return { downloads: [] };
     }
     const storedState = JSON.parse(serializedState);
-    if (Array.isArray(storedState.downloads)) {
-      // Ensure items loaded from storage also have displayUrl set correctly from permanentUrl
+    if (storedState && Array.isArray(storedState.downloads)) {
       return {
-        downloads: storedState.downloads.map((img) => ({
-          ...img,
-          displayUrl: img.permanentUrl,
-        })),
+        downloads: storedState.downloads
+          .filter((img) => img && typeof img.permanentUrl === "string")
+          .map((img) => ({
+            ...img,
+            id:
+              img.id ||
+              `${Date.now()}-dl-${Math.random().toString(36).slice(2, 11)}`,
+            displayUrl: img.permanentUrl,
+          })),
       };
     }
+    console.warn("Stored downloads format is invalid. Clearing it.");
+    localStorage.removeItem(LOCAL_STORAGE_DOWNLOADS_KEY);
   } catch (error) {
-    console.error("Could not load downloads from local storage", error);
+    console.error(
+      "Could not load/parse downloads from local storage. Clearing it.",
+      error,
+    );
+    localStorage.removeItem(LOCAL_STORAGE_DOWNLOADS_KEY);
   }
   return { downloads: [] };
 };
 
 const downloadsReducer = (state, action) => {
   switch (action.type) {
-    case "ADD_DOWNLOAD":
-      const incomingImage = action.payload; // Should now contain the original 'id'
+    case ActionTypes.ADD_DOWNLOAD: {
+      const incomingImage = action.payload;
 
-      const imageToStore = {
-        ...incomingImage,
-        // Ensure displayUrl for downloaded items consistently uses permanentUrl
-        displayUrl: incomingImage.permanentUrl,
-      };
-
-      // If 'id' is somehow still missing from incomingImage (should not happen with new page code),
-      // then create one. This makes the ID generation fallback more explicit.
-      if (!imageToStore.id && imageToStore.permanentUrl) {
-        imageToStore.id = `${Date.now()}-dl-${Math.random().toString(36).substr(2, 9)}`;
-      }
-
-      // Prevent duplicates based on the definitive ID
-      if (
-        imageToStore.id &&
-        state.downloads.find((item) => item.id === imageToStore.id)
-      ) {
+      if (!incomingImage || typeof incomingImage.permanentUrl !== "string") {
+        console.warn(
+          "ADD_DOWNLOAD: Invalid image payload received.",
+          incomingImage,
+        );
         return state;
       }
-      // Fallback duplicate check for very old data that might not have an ID,
-      // though this path is less likely with the ID propagation fix.
+
+      let imageId = incomingImage.id;
+      if (!imageId) {
+        imageId = `${Date.now()}-dl-${Math.random().toString(36).slice(2, 11)}`;
+      }
+
+      if (state.downloads.find((item) => item.id === imageId)) {
+        return state;
+      }
+
       if (
-        !imageToStore.id &&
-        imageToStore.permanentUrl &&
+        !incomingImage.id &&
         state.downloads.find(
-          (item) => item.permanentUrl === imageToStore.permanentUrl,
+          (item) => item.permanentUrl === incomingImage.permanentUrl,
         )
       ) {
         return state;
       }
 
+      const imageToStore = {
+        id: imageId,
+        permanentUrl: incomingImage.permanentUrl,
+        displayUrl: incomingImage.permanentUrl,
+        prompt: incomingImage.prompt || "",
+        model: incomingImage.model || "",
+        seed: incomingImage.seed || "",
+        width: incomingImage.width || 0,
+        height: incomingImage.height || 0,
+        ...(incomingImage.originalName && {
+          originalName: incomingImage.originalName,
+        }),
+      };
+
       return { ...state, downloads: [imageToStore, ...state.downloads] };
+    }
 
     default:
       return state;
@@ -75,24 +101,33 @@ export const DownloadsProvider = ({ children }) => {
   );
 
   useEffect(() => {
-    try {
-      // Store only essential, serializable data.
-      // displayUrl is reconstructed on load from permanentUrl.
-      const downloadsToSave = state.downloads.map((img) => ({
-        id: img.id,
-        permanentUrl: img.permanentUrl,
-        prompt: img.prompt,
-        model: img.model,
-        seed: img.seed,
-        width: img.width,
-        height: img.height,
-      }));
-      const serializedState = JSON.stringify({ downloads: downloadsToSave });
-      localStorage.setItem("lws-ai-downloads", serializedState);
-    } catch (error) {
-      console.error("Could not save downloads to local storage", error);
+    if (Array.isArray(state.downloads)) {
+      try {
+        const downloadsToSave = state.downloads.map((img) => ({
+          id: img.id,
+          permanentUrl: img.permanentUrl,
+          prompt: img.prompt,
+          model: img.model,
+          seed: img.seed,
+          width: img.width,
+          height: img.height,
+          ...(img.originalName && { originalName: img.originalName }),
+        }));
+        const serializedState = JSON.stringify({ downloads: downloadsToSave });
+        localStorage.setItem(LOCAL_STORAGE_DOWNLOADS_KEY, serializedState);
+      } catch (error) {
+        console.error(
+          "Could not save downloads to local storage (stringify or setItem error):",
+          error,
+        );
+      }
+    } else if (typeof state.downloads !== "undefined") {
+      console.warn(
+        "Attempted to save non-array downloads state. This indicates an issue.",
+        state.downloads,
+      );
     }
-  }, [state]);
+  }, [state.downloads]);
 
   return (
     <DownloadsContext.Provider value={{ state, dispatch }}>
@@ -102,5 +137,9 @@ export const DownloadsProvider = ({ children }) => {
 };
 
 export const useDownloads = () => {
-  return useContext(DownloadsContext);
+  const context = useContext(DownloadsContext);
+  if (context === undefined) {
+    throw new Error("useDownloads must be used within a DownloadsProvider");
+  }
+  return context;
 };

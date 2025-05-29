@@ -4,11 +4,32 @@ import React, {
   useReducer,
   useEffect,
   useRef,
+  useCallback,
 } from "react";
 import toast from "react-hot-toast";
 import { generateImageFromApi } from "../api/pollinationsAPI";
 
+const ActionTypes = {
+  SET_PROMPT: "SET_PROMPT",
+  SET_MODEL: "SET_MODEL",
+  SET_DIMENSIONS: "SET_DIMENSIONS",
+  SET_SEED: "SET_SEED",
+  SET_NOLOGO: "SET_NOLOGO",
+  START_LOADING: "START_LOADING",
+  SET_IMAGE: "SET_IMAGE",
+  FINISH_LOADING: "FINISH_LOADING",
+  SET_ERROR: "SET_ERROR",
+  SET_HISTORY: "SET_HISTORY",
+  ADD_TO_HISTORY: "ADD_TO_HISTORY",
+  LOAD_SAVED: "LOAD_SAVED",
+};
+
 const ImageGenerationContext = createContext();
+
+const NUM_IMAGES_TO_GENERATE = 9;
+const MAX_HISTORY_ITEMS = 20;
+const LOCAL_STORAGE_GENERATED_DATA_KEY = "lws-ai-generated-data";
+const LOCAL_STORAGE_PROMPT_HISTORY_KEY = "lws-ai-prompt-history";
 
 const initialState = {
   prompt: "",
@@ -25,55 +46,84 @@ const initialState = {
 
 const reducer = (state, action) => {
   switch (action.type) {
-    case "SET_PROMPT":
+    case ActionTypes.SET_PROMPT:
       return {
         ...state,
         prompt: action.payload,
         images: state.loading ? state.images : [],
       };
-    case "SET_MODEL":
+    case ActionTypes.SET_MODEL:
       return { ...state, model: action.payload };
-    case "SET_DIMENSIONS":
+    case ActionTypes.SET_DIMENSIONS:
       return {
         ...state,
         width: action.payload.width,
         height: action.payload.height,
       };
-    case "SET_SEED":
+    case ActionTypes.SET_SEED:
       return { ...state, seed: action.payload };
-    case "SET_NOLOGO":
+    case ActionTypes.SET_NOLOGO:
       return { ...state, noLogo: action.payload };
-    case "START_LOADING":
+    case ActionTypes.START_LOADING:
       return {
         ...state,
         loading: true,
         error: null,
-        images: Array(9).fill({ isLoading: true }),
+        images: Array(NUM_IMAGES_TO_GENERATE).fill({ isLoading: true }),
       };
-    case "SET_IMAGE":
+    case ActionTypes.SET_IMAGE: {
+      const { index, payload } = action;
+      if (
+        typeof index !== "number" ||
+        index < 0 ||
+        !state.images ||
+        index >= state.images.length
+      ) {
+        console.warn(
+          "SET_IMAGE action received invalid index or images array is not initialized:",
+          index,
+        );
+        return state;
+      }
       const updatedImages = [...state.images];
-      updatedImages[action.index] = action.payload;
+      updatedImages[index] = payload;
       return { ...state, images: updatedImages };
-    case "FINISH_LOADING":
+    }
+    case ActionTypes.FINISH_LOADING:
       return { ...state, loading: false };
-    case "SET_ERROR":
+    case ActionTypes.SET_ERROR:
       return { ...state, error: action.payload, loading: false };
-    case "SET_HISTORY":
-      return { ...state, promptHistory: action.payload };
-    case "ADD_TO_HISTORY":
+    case ActionTypes.SET_HISTORY:
+      return {
+        ...state,
+        promptHistory: Array.isArray(action.payload) ? action.payload : [],
+      };
+    case ActionTypes.ADD_TO_HISTORY: {
+      const newEntry = action.payload;
+      if (!newEntry || typeof newEntry.prompt !== "string") {
+        return state;
+      }
+      const currentHistory = Array.isArray(state.promptHistory)
+        ? state.promptHistory
+        : [];
       const updatedHistory = [
-        action.payload,
-        ...state.promptHistory.filter(
-          (item) => item.prompt !== action.payload.prompt,
+        newEntry,
+        ...currentHistory.filter(
+          (item) =>
+            item &&
+            typeof item.prompt === "string" &&
+            item.prompt !== newEntry.prompt,
         ),
-      ].slice(0, 20);
-      localStorage.setItem(
-        "lws-ai-prompt-history",
-        JSON.stringify(updatedHistory),
-      );
+      ].slice(0, MAX_HISTORY_ITEMS);
       return { ...state, promptHistory: updatedHistory };
-    case "LOAD_SAVED":
-      return { ...state, ...action.payload, loading: false };
+    }
+    case ActionTypes.LOAD_SAVED:
+      return {
+        ...state,
+        ...action.payload,
+        loading: false,
+        error: null,
+      };
     default:
       return state;
   }
@@ -84,39 +134,84 @@ export const ImageGenerationProvider = ({ children }) => {
   const blobUrlsRef = useRef([]);
 
   useEffect(() => {
-    const savedData = localStorage.getItem("lws-ai-generated-data");
+    const savedData = localStorage.getItem(LOCAL_STORAGE_GENERATED_DATA_KEY);
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
-        if (parsed.prompt !== undefined && Array.isArray(parsed.images)) {
+        if (
+          parsed &&
+          typeof parsed.prompt === "string" &&
+          Array.isArray(parsed.images)
+        ) {
           parsed.images = parsed.images.map((img) => {
-            if (img) return { ...img, displayUrl: img.permanentUrl };
+            if (img && img.permanentUrl)
+              return { ...img, displayUrl: img.permanentUrl };
             return null;
           });
-          dispatch({ type: "LOAD_SAVED", payload: parsed });
+          dispatch({ type: ActionTypes.LOAD_SAVED, payload: parsed });
+        } else {
+          console.warn(
+            "Loaded generated data is malformed. Clearing it.",
+            parsed,
+          );
+          localStorage.removeItem(LOCAL_STORAGE_GENERATED_DATA_KEY);
         }
       } catch (err) {
-        console.error("Could not load generated data from local storage", err);
+        console.error(
+          "Could not load/parse generated data from local storage. Clearing it.",
+          err,
+        );
+        localStorage.removeItem(LOCAL_STORAGE_GENERATED_DATA_KEY);
       }
     }
 
-    const savedHistory = localStorage.getItem("lws-ai-prompt-history");
+    const savedHistory = localStorage.getItem(LOCAL_STORAGE_PROMPT_HISTORY_KEY);
     if (savedHistory) {
       try {
         const parsedHistory = JSON.parse(savedHistory);
-        dispatch({ type: "SET_HISTORY", payload: parsedHistory });
+        if (Array.isArray(parsedHistory)) {
+          const validatedHistory = parsedHistory.filter(
+            (item) =>
+              item &&
+              typeof item.prompt === "string" &&
+              typeof item.imageUrl === "string",
+          );
+          dispatch({
+            type: ActionTypes.SET_HISTORY,
+            payload: validatedHistory,
+          });
+        } else {
+          console.warn(
+            "Loaded prompt history from localStorage is not an array. Clearing it.",
+            parsedHistory,
+          );
+          localStorage.removeItem(LOCAL_STORAGE_PROMPT_HISTORY_KEY);
+          dispatch({ type: ActionTypes.SET_HISTORY, payload: [] });
+        }
       } catch (err) {
-        console.error("Could not load prompt history from local storage", err);
+        console.error(
+          "Could not load/parse prompt history from local storage. Clearing it.",
+          err,
+        );
+        localStorage.removeItem(LOCAL_STORAGE_PROMPT_HISTORY_KEY);
+        dispatch({ type: ActionTypes.SET_HISTORY, payload: [] });
       }
+    } else {
+      dispatch({ type: ActionTypes.SET_HISTORY, payload: [] });
     }
   }, []);
 
   useEffect(() => {
-    if (!state.loading && state.images.length > 0) {
+    if (
+      !state.loading &&
+      Array.isArray(state.images) &&
+      state.images.length > 0 &&
+      state.images.some((img) => img && !img.isLoading)
+    ) {
       try {
         const imagesToStore = state.images
           .map((img) => {
-            if (img && !img.isLoading)
+            if (img && !img.isLoading && img.permanentUrl) {
               return {
                 id: img.id,
                 permanentUrl: img.permanentUrl,
@@ -126,49 +221,89 @@ export const ImageGenerationProvider = ({ children }) => {
                 width: img.width,
                 height: img.height,
               };
+            }
             if (img === null) return null;
             return undefined;
           })
-          .filter((img) => img !== undefined);
+          .filter((img) => typeof img !== "undefined");
 
-        localStorage.setItem(
-          "lws-ai-generated-data",
-          JSON.stringify({
-            prompt: state.prompt,
-            images: imagesToStore,
-            model: state.model,
-          }),
-        );
+        if (
+          imagesToStore.length > 0 ||
+          imagesToStore.some((img) => img === null)
+        ) {
+          localStorage.setItem(
+            LOCAL_STORAGE_GENERATED_DATA_KEY,
+            JSON.stringify({
+              prompt: state.prompt,
+              images: imagesToStore,
+              model: state.model,
+            }),
+          );
+        }
       } catch (error) {
-        console.error("Could not save generated data to local storage", error);
+        console.error("Could not save generated data to local storage:", error);
       }
     }
   }, [state.prompt, state.images, state.model, state.loading]);
 
-  const generateImages = async () => {
+  useEffect(() => {
+    if (Array.isArray(state.promptHistory)) {
+      try {
+        if (state.promptHistory.length > 0) {
+          localStorage.setItem(
+            LOCAL_STORAGE_PROMPT_HISTORY_KEY,
+            JSON.stringify(state.promptHistory),
+          );
+        } else if (localStorage.getItem(LOCAL_STORAGE_PROMPT_HISTORY_KEY)) {
+          localStorage.setItem(
+            LOCAL_STORAGE_PROMPT_HISTORY_KEY,
+            JSON.stringify([]),
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Failed to save prompt history to localStorage (stringify or setItem error):",
+          error,
+        );
+      }
+    }
+  }, [state.promptHistory]);
+
+  const generateImages = useCallback(async () => {
     if (!state.prompt.trim()) {
       toast.error("Please enter a prompt!");
       return;
     }
 
-    dispatch({ type: "START_LOADING" });
-    const loadingToastId = toast.loading("Generating images...");
+    dispatch({ type: ActionTypes.START_LOADING });
+    const loadingToastId = toast.loading(
+      `Generating ${NUM_IMAGES_TO_GENERATE} images...`,
+    );
 
-    blobUrlsRef.current.forEach((url) => url && URL.revokeObjectURL(url));
+    blobUrlsRef.current.forEach((url) => {
+      if (url && typeof url === "string" && url.startsWith("blob:")) {
+        URL.revokeObjectURL(url);
+      }
+    });
     blobUrlsRef.current = [];
 
-    const baseSeed = state.seed
-      ? parseInt(state.seed, 10)
-      : Math.floor(Math.random() * 1000000000);
+    const baseSeed =
+      state.seed && !isNaN(parseInt(state.seed, 10))
+        ? parseInt(state.seed, 10)
+        : Math.floor(Math.random() * 1000000000);
 
     let successCount = 0;
+    const newBlobUrls = [];
 
-    for (let i = 0; i < 9; i++) {
-      const currentSeed = state.seed ? baseSeed : baseSeed + i;
-      let resultObject = null;
+    for (let i = 0; i < NUM_IMAGES_TO_GENERATE; i++) {
+      const currentSeed =
+        state.seed && !isNaN(parseInt(state.seed, 10))
+          ? baseSeed
+          : baseSeed + i;
+      let imageResult = null;
 
       try {
-        resultObject = await generateImageFromApi({
+        const apiResponse = await generateImageFromApi({
           prompt: state.prompt,
           model: state.model,
           width: state.width,
@@ -177,27 +312,47 @@ export const ImageGenerationProvider = ({ children }) => {
           noLogo: state.noLogo,
         });
 
-        if (resultObject) {
-          resultObject.id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        }
+        if (apiResponse && apiResponse.displayUrl) {
+          imageResult = {
+            id: `${Date.now()}-${i}-${Math.random().toString(36).slice(2, 11)}`,
+            prompt: state.prompt,
+            model: state.model,
+            seed: currentSeed,
+            width: state.width,
+            height: state.height,
+            displayUrl: apiResponse.displayUrl,
+            permanentUrl: apiResponse.permanentUrl || apiResponse.displayUrl,
+          };
 
-        blobUrlsRef.current.push(resultObject.displayUrl);
-        successCount++;
+          if (imageResult.displayUrl.startsWith("blob:")) {
+            newBlobUrls.push(imageResult.displayUrl);
+          }
+          successCount++;
+        } else {
+          console.warn(
+            `Image generation for index ${i} did not return a valid URL or response.`,
+          );
+        }
       } catch (err) {
-        console.warn(`❌ Failed to fetch image ${i + 1}:`, err.message);
+        console.warn(`Failed to fetch image ${i + 1}:`, err.message || err);
       }
 
-      dispatch({ type: "SET_IMAGE", index: i, payload: resultObject });
+      dispatch({
+        type: ActionTypes.SET_IMAGE,
+        index: i,
+        payload: imageResult,
+      });
 
-      if (i === 0 && resultObject) {
+      if (i === 0 && imageResult && imageResult.displayUrl) {
         dispatch({
-          type: "ADD_TO_HISTORY",
-          payload: { prompt: state.prompt, imageUrl: resultObject.displayUrl },
+          type: ActionTypes.ADD_TO_HISTORY,
+          payload: { prompt: state.prompt, imageUrl: imageResult.displayUrl },
         });
       }
     }
+    blobUrlsRef.current = newBlobUrls;
 
-    dispatch({ type: "FINISH_LOADING" });
+    dispatch({ type: ActionTypes.FINISH_LOADING });
     toast.dismiss(loadingToastId);
 
     if (successCount > 0) {
@@ -205,15 +360,30 @@ export const ImageGenerationProvider = ({ children }) => {
         `Generated ${successCount} image${successCount > 1 ? "s" : ""}!`,
       );
     } else {
-      toast.error("Failed to generate images.");
+      toast.error("Failed to generate any images. Please try again.");
+      dispatch({
+        type: ActionTypes.SET_ERROR,
+        payload: "All image generations failed.",
+      });
     }
-  };
+  }, [
+    state.prompt,
+    state.model,
+    state.width,
+    state.height,
+    state.seed,
+    state.noLogo,
+    dispatch,
+  ]);
 
   useEffect(() => {
     return () => {
       blobUrlsRef.current.forEach((url) => {
-        if (url) URL.revokeObjectURL(url);
+        if (url && typeof url === "string" && url.startsWith("blob:")) {
+          URL.revokeObjectURL(url);
+        }
       });
+      blobUrlsRef.current = [];
     };
   }, []);
 
@@ -226,4 +396,12 @@ export const ImageGenerationProvider = ({ children }) => {
   );
 };
 
-export const useImageGeneration = () => useContext(ImageGenerationContext);
+export const useImageGeneration = () => {
+  const context = useContext(ImageGenerationContext);
+  if (context === undefined) {
+    throw new Error(
+      "useImageGeneration must be used within an ImageGenerationProvider",
+    );
+  }
+  return context;
+};

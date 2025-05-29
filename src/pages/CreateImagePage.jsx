@@ -16,7 +16,7 @@ const CreateImagePage = () => {
   const [modelsLoading, setModelsLoading] = useState(true);
 
   useEffect(() => {
-    const loadModels = async () => {
+    (async () => {
       setModelsLoading(true);
       try {
         const modelList = await fetchAvailableModels();
@@ -40,32 +40,29 @@ const CreateImagePage = () => {
       } finally {
         setModelsLoading(false);
       }
-    };
-
-    loadModels();
-  }, [dispatch]);
+    })();
+  }, [dispatch, state.model]);
 
   const handlePromptChange = (e) => {
     dispatch({ type: "SET_PROMPT", payload: e.target.value });
   };
 
   const handleDownload = (image) => {
-    // Ensure all necessary properties, including the original id, are passed
     const downloadPayload = {
-      id: image.id, // <-- THIS LINE IS CRITICAL
+      id: image.id,
       permanentUrl: image.permanentUrl,
       prompt: image.prompt,
       model: image.model,
       seed: image.seed,
       width: image.width,
       height: image.height,
-      displayUrl: image.displayUrl, // Pass this along, DownloadsContext will clarify it
+      displayUrl: image.displayUrl,
     };
 
     downloadDispatch({ type: "ADD_DOWNLOAD", payload: downloadPayload });
 
     toast.success("Download started!");
-    // Fetch from permanentUrl for the actual download to ensure it's the canonical source
+
     fetch(image.permanentUrl)
       .then((res) => res.blob())
       .then((blob) => {
