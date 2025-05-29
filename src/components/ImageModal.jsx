@@ -3,8 +3,17 @@ import React from "react";
 const ImageModal = ({ image, onClose }) => {
   if (!image) return null;
 
-  const aspectRatio =
-    image.width && image.height ? `${image.width}:${image.height}` : "N/A";
+  const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
+
+  const aspectRatio = (() => {
+    if (image.width && image.height) {
+      const divisor = gcd(image.width, image.height);
+      const w = image.width / divisor;
+      const h = image.height / divisor;
+      return `${w}:${h}`;
+    }
+    return "N/A";
+  })();
 
   return (
     <div
