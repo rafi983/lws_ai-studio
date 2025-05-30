@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from "react";
+import toast from "react-hot-toast";
 
 const DownloadsContext = createContext();
 
@@ -18,22 +19,23 @@ const loadInitialState = () => {
     if (storedState && Array.isArray(storedState.downloads)) {
       return {
         downloads: storedState.downloads
-          .filter((img) => img && typeof img.permanentUrl === "string")
+          .filter(
+            (img) =>
+              img &&
+              typeof img.permanentUrl === "string" &&
+              typeof img.id === "string",
+          )
           .map((img) => ({
             ...img,
-            id:
-              img.id ||
-              `${Date.now()}-dl-${Math.random().toString(36).slice(2, 11)}`,
             displayUrl: img.permanentUrl,
           })),
       };
     }
-    console.warn("Stored downloads format is invalid. Clearing it.");
+    toast.warn("Stored downloads data was invalid and has been cleared.");
     localStorage.removeItem(LOCAL_STORAGE_DOWNLOADS_KEY);
   } catch (error) {
-    console.error(
-      "Could not load/parse downloads from local storage. Clearing it.",
-      error,
+    toast.error(
+      `Could not load downloads: ${error.message}. Downloads have been cleared.`,
     );
     localStorage.removeItem(LOCAL_STORAGE_DOWNLOADS_KEY);
   }
@@ -45,29 +47,28 @@ const downloadsReducer = (state, action) => {
     case ActionTypes.ADD_DOWNLOAD: {
       const incomingImage = action.payload;
 
-      if (!incomingImage || typeof incomingImage.permanentUrl !== "string") {
-        console.warn(
-          "ADD_DOWNLOAD: Invalid image payload received.",
-          incomingImage,
-        );
+      if (
+        !incomingImage ||
+        typeof incomingImage.permanentUrl !== "string" ||
+        !incomingImage.id
+      ) {
+        toast.warn("Could not add to downloads: Invalid image data received.");
         return state;
       }
 
-      let imageId = incomingImage.id;
-      if (!imageId) {
-        imageId = `${Date.now()}-dl-${Math.random().toString(36).slice(2, 11)}`;
-      }
+      const imageId = String(incomingImage.id);
 
-      if (state.downloads.find((item) => item.id === imageId)) {
+      if (state.downloads.find((item) => String(item.id) === imageId)) {
+        toast.success("Image is already in your downloads list!");
         return state;
       }
 
       if (
-        !incomingImage.id &&
         state.downloads.find(
           (item) => item.permanentUrl === incomingImage.permanentUrl,
         )
       ) {
+        toast.success("Image (by URL) is already in your downloads list!");
         return state;
       }
 
@@ -75,16 +76,18 @@ const downloadsReducer = (state, action) => {
         id: imageId,
         permanentUrl: incomingImage.permanentUrl,
         displayUrl: incomingImage.permanentUrl,
-        prompt: incomingImage.prompt || "",
-        model: incomingImage.model || "",
-        seed: incomingImage.seed || "",
+        prompt: incomingImage.prompt || "No prompt",
+        model: incomingImage.model || "Unknown model",
+        seed: incomingImage.seed || "N/A",
         width: incomingImage.width || 0,
         height: incomingImage.height || 0,
-        ...(incomingImage.originalName && {
-          originalName: incomingImage.originalName,
-        }),
+        originalName:
+          incomingImage.originalName || `downloaded-image-${imageId}`,
+        downloadedAt: new Date().toISOString(),
+        ...incomingImage,
       };
 
+      toast.success("Image added to downloads!");
       return { ...state, downloads: [imageToStore, ...state.downloads] };
     }
 
@@ -111,20 +114,19 @@ export const DownloadsProvider = ({ children }) => {
           seed: img.seed,
           width: img.width,
           height: img.height,
-          ...(img.originalName && { originalName: img.originalName }),
+          originalName: img.originalName,
+          downloadedAt: img.downloadedAt,
         }));
         const serializedState = JSON.stringify({ downloads: downloadsToSave });
         localStorage.setItem(LOCAL_STORAGE_DOWNLOADS_KEY, serializedState);
       } catch (error) {
-        console.error(
-          "Could not save downloads to local storage (stringify or setItem error):",
-          error,
+        toast.error(
+          `Could not save downloads to your browser: ${error.message}`,
         );
       }
     } else if (typeof state.downloads !== "undefined") {
-      console.warn(
-        "Attempted to save non-array downloads state. This indicates an issue.",
-        state.downloads,
+      toast.warn(
+        "An attempt to save an invalid downloads collection was prevented. Please report this if it persists.",
       );
     }
   }, [state.downloads]);

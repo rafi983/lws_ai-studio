@@ -79,9 +79,8 @@ const reducer = (state, action) => {
         !state.images ||
         index >= state.images.length
       ) {
-        console.warn(
-          "SET_IMAGE action received invalid index or images array is not initialized:",
-          index,
+        toast.error(
+          `Internal error: Could not update image at index ${index}.`,
         );
         return state;
       }
@@ -101,6 +100,8 @@ const reducer = (state, action) => {
     case ActionTypes.ADD_TO_HISTORY: {
       const newEntry = action.payload;
       if (!newEntry || typeof newEntry.prompt !== "string") {
+        // Potentially a silent error, or add a toast if this indicates a bug
+        // For now, keeping it silent as it's more of a data validation
         return state;
       }
       const currentHistory = Array.isArray(state.promptHistory)
@@ -150,16 +151,14 @@ export const ImageGenerationProvider = ({ children }) => {
           });
           dispatch({ type: ActionTypes.LOAD_SAVED, payload: parsed });
         } else {
-          console.warn(
-            "Loaded generated data is malformed. Clearing it.",
-            parsed,
+          toast.warn(
+            "Previously saved image data was malformed and has been cleared.",
           );
           localStorage.removeItem(LOCAL_STORAGE_GENERATED_DATA_KEY);
         }
       } catch (err) {
-        console.error(
-          "Could not load/parse generated data from local storage. Clearing it.",
-          err,
+        toast.error(
+          `Error loading saved image data: ${err.message}. Data has been cleared.`,
         );
         localStorage.removeItem(LOCAL_STORAGE_GENERATED_DATA_KEY);
       }
@@ -181,17 +180,15 @@ export const ImageGenerationProvider = ({ children }) => {
             payload: validatedHistory,
           });
         } else {
-          console.warn(
-            "Loaded prompt history from localStorage is not an array. Clearing it.",
-            parsedHistory,
+          toast.warn(
+            "Previously saved prompt history was malformed and has been cleared.",
           );
           localStorage.removeItem(LOCAL_STORAGE_PROMPT_HISTORY_KEY);
           dispatch({ type: ActionTypes.SET_HISTORY, payload: [] });
         }
       } catch (err) {
-        console.error(
-          "Could not load/parse prompt history from local storage. Clearing it.",
-          err,
+        toast.error(
+          `Error loading prompt history: ${err.message}. History has been cleared.`,
         );
         localStorage.removeItem(LOCAL_STORAGE_PROMPT_HISTORY_KEY);
         dispatch({ type: ActionTypes.SET_HISTORY, payload: [] });
@@ -241,7 +238,9 @@ export const ImageGenerationProvider = ({ children }) => {
           );
         }
       } catch (error) {
-        console.error("Could not save generated data to local storage:", error);
+        toast.error(
+          `Could not save image data to local storage: ${error.message}`,
+        );
       }
     }
   }, [state.prompt, state.images, state.model, state.loading]);
@@ -255,16 +254,14 @@ export const ImageGenerationProvider = ({ children }) => {
             JSON.stringify(state.promptHistory),
           );
         } else if (localStorage.getItem(LOCAL_STORAGE_PROMPT_HISTORY_KEY)) {
+          // Clear it if it exists but current history is empty
           localStorage.setItem(
             LOCAL_STORAGE_PROMPT_HISTORY_KEY,
             JSON.stringify([]),
           );
         }
       } catch (error) {
-        console.error(
-          "Failed to save prompt history to localStorage (stringify or setItem error):",
-          error,
-        );
+        toast.error(`Failed to save prompt history: ${error.message}`);
       }
     }
   }, [state.promptHistory]);
@@ -329,12 +326,14 @@ export const ImageGenerationProvider = ({ children }) => {
           }
           successCount++;
         } else {
-          console.warn(
-            `Image generation for index ${i} did not return a valid URL or response.`,
+          toast.warn(
+            `Image ${i + 1} generation did not return a valid result.`,
           );
         }
       } catch (err) {
-        console.warn(`Failed to fetch image ${i + 1}:`, err.message || err);
+        toast.warn(
+          `Failed to fetch image ${i + 1}: ${err.message || "Unknown error"}`,
+        );
       }
 
       dispatch({

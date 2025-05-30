@@ -1,4 +1,5 @@
 import React, { createContext, useReducer, useContext, useEffect } from "react";
+import toast from "react-hot-toast";
 
 const ActionTypes = {
   TOGGLE_FAVOURITE: "TOGGLE_FAVOURITE",
@@ -18,19 +19,23 @@ const reducer = (state, action) => {
     case ActionTypes.TOGGLE_FAVOURITE: {
       const image = action.payload;
       if (!image || typeof image.id === "undefined") {
-        console.warn(
-          "TOGGLE_FAVOURITE action received invalid image payload:",
-          image,
-        );
+        toast.warn("Could not toggle favourite: invalid image data received.");
         return state;
       }
 
       const newFavourites = { ...state.favourites };
+      const imageId = String(image.id); // Ensure id is a string for consistent key access
 
-      if (newFavourites[image.id]) {
-        delete newFavourites[image.id];
+      if (newFavourites[imageId]) {
+        delete newFavourites[imageId];
+        toast.success(
+          `${image.prompt ? "'" + image.prompt.substring(0, 20) + "...'" : "Image"} removed from favourites!`,
+        );
       } else {
-        newFavourites[image.id] = image;
+        newFavourites[imageId] = image;
+        toast.success(
+          `${image.prompt ? "'" + image.prompt.substring(0, 20) + "...'" : "Image"} added to favourites!`,
+        );
       }
       return { ...state, favourites: newFavourites };
     }
@@ -69,9 +74,8 @@ export const FavouritesProvider = ({ children }) => {
             payload: parsedFavourites,
           });
         } else {
-          console.warn(
-            "Loaded favourites from localStorage is not a valid object. Clearing it.",
-            parsedFavourites,
+          toast.warn(
+            "Saved favourites data was malformed and has been cleared.",
           );
           localStorage.removeItem(LOCAL_STORAGE_FAVOURITES_KEY);
           dispatch({ type: ActionTypes.SET_FAVOURITES, payload: {} });
@@ -80,9 +84,8 @@ export const FavouritesProvider = ({ children }) => {
         dispatch({ type: ActionTypes.SET_FAVOURITES, payload: {} });
       }
     } catch (err) {
-      console.error(
-        "Could not load/parse favourites from local storage. Clearing it.",
-        err,
+      toast.error(
+        `Error loading favourites: ${err.message}. Favourites have been cleared.`,
       );
       localStorage.removeItem(LOCAL_STORAGE_FAVOURITES_KEY);
       dispatch({ type: ActionTypes.SET_FAVOURITES, payload: {} });
@@ -101,15 +104,13 @@ export const FavouritesProvider = ({ children }) => {
           JSON.stringify(state.favourites),
         );
       } catch (error) {
-        console.error(
-          "Failed to save favourites to localStorage (stringify or setItem error):",
-          error,
+        toast.error(
+          `Failed to save favourites to your browser: ${error.message}`,
         );
       }
     } else if (typeof state.favourites !== "undefined") {
-      console.warn(
-        "Attempted to save invalid favourites state. This indicates an issue.",
-        state.favourites,
+      toast.warn(
+        "An attempt to save an invalid favourites collection was prevented. If you see this often, please report it.",
       );
     }
   }, [state.favourites]);
