@@ -44,6 +44,16 @@ const initialState = {
   error: null,
 };
 
+const showWarningToast = (message) => {
+  toast(message, {
+    icon: "⚠️",
+    style: {
+      background: "#facc15",
+      color: "#000",
+    },
+  });
+};
+
 const reducer = (state, action) => {
   switch (action.type) {
     case ActionTypes.SET_PROMPT:
@@ -100,8 +110,6 @@ const reducer = (state, action) => {
     case ActionTypes.ADD_TO_HISTORY: {
       const newEntry = action.payload;
       if (!newEntry || typeof newEntry.prompt !== "string") {
-        // Potentially a silent error, or add a toast if this indicates a bug
-        // For now, keeping it silent as it's more of a data validation
         return state;
       }
       const currentHistory = Array.isArray(state.promptHistory)
@@ -118,13 +126,18 @@ const reducer = (state, action) => {
       ].slice(0, MAX_HISTORY_ITEMS);
       return { ...state, promptHistory: updatedHistory };
     }
-    case ActionTypes.LOAD_SAVED:
+    case ActionTypes.LOAD_SAVED: {
+      const loadedData = { ...action.payload };
+      if (loadedData.model === "gptimg") {
+        loadedData.model = initialState.model;
+      }
       return {
         ...state,
-        ...action.payload,
+        ...loadedData,
         loading: false,
         error: null,
       };
+    }
     default:
       return state;
   }
@@ -151,7 +164,7 @@ export const ImageGenerationProvider = ({ children }) => {
           });
           dispatch({ type: ActionTypes.LOAD_SAVED, payload: parsed });
         } else {
-          toast.warn(
+          showWarningToast(
             "Previously saved image data was malformed and has been cleared.",
           );
           localStorage.removeItem(LOCAL_STORAGE_GENERATED_DATA_KEY);
@@ -180,7 +193,7 @@ export const ImageGenerationProvider = ({ children }) => {
             payload: validatedHistory,
           });
         } else {
-          toast.warn(
+          showWarningToast(
             "Previously saved prompt history was malformed and has been cleared.",
           );
           localStorage.removeItem(LOCAL_STORAGE_PROMPT_HISTORY_KEY);
@@ -254,7 +267,6 @@ export const ImageGenerationProvider = ({ children }) => {
             JSON.stringify(state.promptHistory),
           );
         } else if (localStorage.getItem(LOCAL_STORAGE_PROMPT_HISTORY_KEY)) {
-          // Clear it if it exists but current history is empty
           localStorage.setItem(
             LOCAL_STORAGE_PROMPT_HISTORY_KEY,
             JSON.stringify([]),
@@ -269,6 +281,14 @@ export const ImageGenerationProvider = ({ children }) => {
   const generateImages = useCallback(async () => {
     if (!state.prompt.trim()) {
       toast.error("Please enter a prompt!");
+      return;
+    }
+
+    if (state.model === "gptimg") {
+      toast.error(
+        "The model 'gptimg' is currently unavailable or restricted. Please select another model.",
+      );
+      dispatch({ type: ActionTypes.SET_MODEL, payload: initialState.model });
       return;
     }
 
@@ -326,12 +346,12 @@ export const ImageGenerationProvider = ({ children }) => {
           }
           successCount++;
         } else {
-          toast.warn(
+          showWarningToast(
             `Image ${i + 1} generation did not return a valid result.`,
           );
         }
       } catch (err) {
-        toast.warn(
+        showWarningToast(
           `Failed to fetch image ${i + 1}: ${err.message || "Unknown error"}`,
         );
       }

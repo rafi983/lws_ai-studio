@@ -14,17 +14,29 @@ const initialState = {
   favourites: {},
 };
 
+const showWarningToast = (message) => {
+  toast(message, {
+    icon: "⚠️",
+    style: {
+      background: "#facc15", // Amber background
+      color: "#000", // Black text
+    },
+  });
+};
+
 const reducer = (state, action) => {
   switch (action.type) {
     case ActionTypes.TOGGLE_FAVOURITE: {
       const image = action.payload;
       if (!image || typeof image.id === "undefined") {
-        toast.warn("Could not toggle favourite: invalid image data received.");
+        showWarningToast(
+          "Could not toggle favourite: invalid image data received.",
+        );
         return state;
       }
 
       const newFavourites = { ...state.favourites };
-      const imageId = String(image.id); // Ensure id is a string for consistent key access
+      const imageId = String(image.id);
 
       if (newFavourites[imageId]) {
         delete newFavourites[imageId];
@@ -74,7 +86,7 @@ export const FavouritesProvider = ({ children }) => {
             payload: parsedFavourites,
           });
         } else {
-          toast.warn(
+          showWarningToast(
             "Saved favourites data was malformed and has been cleared.",
           );
           localStorage.removeItem(LOCAL_STORAGE_FAVOURITES_KEY);
@@ -109,7 +121,7 @@ export const FavouritesProvider = ({ children }) => {
         );
       }
     } else if (typeof state.favourites !== "undefined") {
-      toast.warn(
+      showWarningToast(
         "An attempt to save an invalid favourites collection was prevented. If you see this often, please report it.",
       );
     }

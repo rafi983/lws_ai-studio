@@ -9,6 +9,16 @@ const ActionTypes = {
 
 const LOCAL_STORAGE_DOWNLOADS_KEY = "lws-ai-downloads";
 
+const showWarningToast = (message) => {
+  toast(message, {
+    icon: "⚠️",
+    style: {
+      background: "#facc15", // Amber background
+      color: "#000", // Black text
+    },
+  });
+};
+
 const loadInitialState = () => {
   try {
     const serializedState = localStorage.getItem(LOCAL_STORAGE_DOWNLOADS_KEY);
@@ -31,7 +41,7 @@ const loadInitialState = () => {
           })),
       };
     }
-    toast.warn("Stored downloads data was invalid and has been cleared.");
+    showWarningToast("Stored downloads data was invalid and has been cleared.");
     localStorage.removeItem(LOCAL_STORAGE_DOWNLOADS_KEY);
   } catch (error) {
     toast.error(
@@ -52,7 +62,9 @@ const downloadsReducer = (state, action) => {
         typeof incomingImage.permanentUrl !== "string" ||
         !incomingImage.id
       ) {
-        toast.warn("Could not add to downloads: Invalid image data received.");
+        showWarningToast(
+          "Could not add to downloads: Invalid image data received.",
+        );
         return state;
       }
 
@@ -125,7 +137,7 @@ export const DownloadsProvider = ({ children }) => {
         );
       }
     } else if (typeof state.downloads !== "undefined") {
-      toast.warn(
+      showWarningToast(
         "An attempt to save an invalid downloads collection was prevented. Please report this if it persists.",
       );
     }
