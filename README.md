@@ -14,6 +14,8 @@ A feature-rich, single-page web application that provides a user-friendly studio
 - [Project Setup](#project-setup)
 - [Available Scripts](#available-scripts)
 - [File Structure](#file-structure)
+- [Special Notes](#special-notes)
+
 
 ---
 
