@@ -122,6 +122,7 @@ The project follows a standard React application structure, organized for scalab
 =======
 └── main.jsx     # Entry point of the application (Vite default)
 
+```
 
 ## Special Notes
 
