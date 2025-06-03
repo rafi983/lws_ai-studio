@@ -1,4 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
+import toast from "react-hot-toast";
+import { FiSearch, FiMic, FiLayers } from "react-icons/fi";
+import { HiSparkles } from "react-icons/hi";
 
 const PromptInput = ({
   prompt,
@@ -6,41 +9,60 @@ const PromptInput = ({
   onGenerate,
   loading,
   modelsLoading,
+  onTemplatesClick,
+  onGeneratePromptsClick,
 }) => {
+  const [isRecording, setIsRecording] = useState(false);
+
+  const handleVoiceInput = () => {
+    if (
+      !("webkitSpeechRecognition" in window || "SpeechRecognition" in window)
+    ) {
+      toast.error("Your browser doesn't support speech recognition.");
+      return;
+    }
+
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => setIsRecording(true);
+    recognition.onend = () => setIsRecording(false);
+    recognition.onerror = () =>
+      toast.error("Voice recognition failed. Try again.");
+
+    recognition.onresult = (e) => {
+      const transcript = e.results[0][0].transcript;
+      if (transcript) onChange({ target: { value: transcript } });
+    };
+
+    recognition.start();
+  };
+
   return (
-    <div className="relative mb-8 rounded-full overflow-hidden border border-zinc-700 bg-zinc-900/10 backdrop-blur-sm">
-      <div className="flex items-center">
-        <div className="pl-5 pr-2">
-          <svg
-            className="w-5 h-5 text-zinc-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-        </div>
+    <div className="mb-8">
+      <div className="relative flex items-center rounded-xl border border-zinc-700/50 bg-zinc-900/40 backdrop-blur-md shadow-sm hover:shadow-md transition-shadow">
+        <FiSearch className="absolute left-4 text-zinc-400 w-5 h-5" />
         <input
           type="text"
-          placeholder="A synthwave sports car..."
+          placeholder="Enter your creative prompt..."
           value={prompt}
           onChange={onChange}
           onKeyDown={(e) => e.key === "Enter" && !loading && onGenerate()}
-          className="outline-none w-full py-4 px-2 bg-transparent text-white placeholder-zinc-400 text-lg"
+          className="w-full py-4 pl-12 pr-16 text-base text-white placeholder-zinc-400 bg-transparent focus:outline-none focus:ring-2 focus:ring-purple-500 rounded-xl"
         />
+
         <button
           onClick={onGenerate}
-          disabled={loading || modelsLoading}
-          className="bg-zinc-800 hover:bg-zinc-700 transition-colors p-4 mr-1 rounded-full disabled:opacity-50"
+          disabled={modelsLoading}
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-3 bg-purple-600 hover:bg-purple-500 text-white rounded-full transition-colors disabled:opacity-50"
         >
           {loading ? (
             <svg
-              className="animate-spin h-6 w-6 text-white"
+              className="animate-spin h-5 w-5"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
@@ -68,6 +90,32 @@ const PromptInput = ({
               <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
             </svg>
           )}
+        </button>
+      </div>
+
+      <div className="flex gap-3 mt-3">
+        <button
+          onClick={onTemplatesClick}
+          className="flex items-center gap-1 px-3 py-1.5 text-sm text-purple-300 bg-purple-800/20 hover:bg-purple-800/40 rounded-md transition"
+        >
+          <FiLayers className="w-4 h-4" /> Templates
+        </button>
+        <button
+          onClick={onGeneratePromptsClick}
+          className="flex items-center gap-1 px-3 py-1.5 text-sm text-purple-300 bg-purple-800/20 hover:bg-purple-800/40 rounded-md transition"
+        >
+          <HiSparkles className="w-4 h-4" /> Generate Prompts
+        </button>
+        <button
+          onClick={handleVoiceInput}
+          className={`flex items-center gap-1 px-3 py-1.5 text-sm text-purple-300 ${
+            isRecording
+              ? "bg-red-500/80"
+              : "bg-purple-800/20 hover:bg-purple-800/40"
+          } rounded-md transition`}
+        >
+          <FiMic className="w-4 h-4" />{" "}
+          {isRecording ? "Listening..." : "Voice Prompt"}
         </button>
       </div>
     </div>

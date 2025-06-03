@@ -88,6 +88,25 @@ const CreateImagePage = () => {
     localStorage.removeItem("lws-ai-prompt-history");
   };
 
+  const handleTemplatesClick = () => {
+    const templates = [
+      "A futuristic city skyline at dusk",
+      "A cyberpunk street scene in neon lights",
+      "A peaceful forest under the stars",
+      "A dragon flying over a medieval castle",
+    ];
+    const randomTemplate =
+      templates[Math.floor(Math.random() * templates.length)];
+    dispatch({ type: "SET_PROMPT", payload: randomTemplate });
+    toast.success(`Template inserted: ${randomTemplate}`);
+  };
+
+  const handleGeneratePromptsClick = () => {
+    const generated = `A fantasy ${["landscape", "character", "creature"][Math.floor(Math.random() * 3)]} in a ${["cyberpunk", "steampunk", "futuristic"][Math.floor(Math.random() * 3)]} style.`;
+    dispatch({ type: "SET_PROMPT", payload: generated });
+    toast.success("AI generated a new prompt!");
+  };
+
   return (
     <div>
       <h2 className="text-4xl font-bold mb-8">
@@ -106,6 +125,8 @@ const CreateImagePage = () => {
         onGenerate={generateImages}
         loading={state.loading}
         modelsLoading={modelsLoading}
+        onTemplatesClick={handleTemplatesClick}
+        onGeneratePromptsClick={handleGeneratePromptsClick}
       />
 
       <AdvancedSettings
