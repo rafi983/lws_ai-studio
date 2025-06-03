@@ -37,7 +37,7 @@ const loadInitialState = () => {
           )
           .map((img) => ({
             ...img,
-            displayUrl: img.permanentUrl,
+            displayUrl: img.displayUrl || img.permanentUrl, // Preserve displayUrl if available
           })),
       };
     }
@@ -87,7 +87,7 @@ const downloadsReducer = (state, action) => {
       const imageToStore = {
         id: imageId,
         permanentUrl: incomingImage.permanentUrl,
-        displayUrl: incomingImage.permanentUrl,
+        displayUrl: incomingImage.displayUrl || incomingImage.permanentUrl, // Preserve correct displayUrl
         prompt: incomingImage.prompt || "No prompt",
         model: incomingImage.model || "Unknown model",
         seed: incomingImage.seed || "N/A",
@@ -96,6 +96,7 @@ const downloadsReducer = (state, action) => {
         originalName:
           incomingImage.originalName || `downloaded-image-${imageId}`,
         downloadedAt: new Date().toISOString(),
+        status: incomingImage.status || "ready",
         ...incomingImage,
       };
 
@@ -121,6 +122,7 @@ export const DownloadsProvider = ({ children }) => {
         const downloadsToSave = state.downloads.map((img) => ({
           id: img.id,
           permanentUrl: img.permanentUrl,
+          displayUrl: img.displayUrl,
           prompt: img.prompt,
           model: img.model,
           seed: img.seed,
@@ -128,6 +130,7 @@ export const DownloadsProvider = ({ children }) => {
           height: img.height,
           originalName: img.originalName,
           downloadedAt: img.downloadedAt,
+          status: img.status || "ready",
         }));
         const serializedState = JSON.stringify({ downloads: downloadsToSave });
         localStorage.setItem(LOCAL_STORAGE_DOWNLOADS_KEY, serializedState);

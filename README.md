@@ -28,36 +28,44 @@ https://ai-lws-studio.vercel.app/
 This application provides a complete workflow for AI image generation and management.
 
 ### 🎨 Core Image Generation
-* **Prompt-Based Creation:** A central input field allows users to describe any image they want to create using natural language.
-* **Image Grid Display:** Generates a grid of 9 images from a single prompt, offering multiple options at once.
-* **Loading & Error States:** The interface provides clear feedback, showing loading skeletons while images are generating and a placeholder card if an image fails to load.
+- **Prompt-Based Creation:** Describe any image you want using natural language.
+- **Enhanced Prompt Input:**
+    - **Template Selection:** Pick from curated prompt templates to kickstart your ideas.
+    - **AI Prompt Generator:** Let the app suggest creative prompts for you.
+    - **Voice Input:** Speak your prompt directly using speech-to-text capabilities.
+- **Image Grid Display:** Generates a grid of 9 images from a single prompt, offering multiple options at once.
+- **Status-Based Rendering:** Each image shows its current state:
+    - *Queued:* Waiting for generation.
+    - *Loading:* Animated spinner with a progress bar.
+    - *Error:* Displays an error icon and helpful message.
+- **Image Modal:** Click an image to view it larger, with metadata (prompt, model, seed, dimensions).
+
 
 ### ⚙️ Advanced Generation Controls
-* **Model Selection:** Users can choose from a dropdown list of different AI models to experiment with various artistic styles.
-* **Seed Control:** A "Seed" input field allows for reproducible results. If a seed is provided, it will generate 9 identical images. If left empty, it will generate 9 random images.
-* **Custom Dimensions:** Users can set the precise width and height for the output images.
-* **Aspect Ratio Presets:** For convenience, users can click presets like `1:1`, `16:9`, `4:3`, and `3:2` to automatically set the dimensions.
-* **Watermark Toggle:** A switch allows the user to remove the default logo/watermark from the generated images.
+- **Model Selection:** Choose from dynamically fetched AI models.
+- **Seed Control:** Lock a seed for reproducibility or leave blank for randomness.
+- **Custom Dimensions:** Set width/height manually or use presets (`1:1`, `16:9`, `4:3`, `3:2`).
+- **Watermark Toggle:** Enable/disable the Pollinations logo on images.
 
 ### 🖼️ Personalization & History
-* **Image Modal:** Any generated image can be clicked to open a detailed modal view, which displays the full image along with its metadata (prompt, model, seed, and dimensions).
-* **Direct Download:** Each image card has a button to download the final `.png` file.
-* **Favourites System:** Users can mark any image as a "favourite." A dedicated "Favourites" page displays all saved images, creating a personal gallery.
-* **Downloads History:** The app keeps a record of every downloaded image, which can be viewed on the "Downloads" page.
-* **Prompt History:** The application automatically saves recent prompts. This history is searchable and allows users to instantly reuse a previous prompt.
-* **Local Persistence:** All user data (Favourites, Downloads, Prompt History) is saved in the browser's `localStorage`, so their collections and settings persist between sessions.
+- **Favourites System:** Mark images as favourites and browse them in a dedicated page.
+- **Downloads History:** All downloaded images are tracked and displayed.
+- **Prompt History Sidebar:**
+    - Auto-saves recent prompts with thumbnails.
+    - Click a prompt to reuse.
+    - Searchable and clearable.
+- **Local Persistence:** All app data (generated images, favourites, downloads, prompt history) is saved in `localStorage`.
 
 ---
 
 ## Technology Stack
 
-This project is built exclusively with frontend technologies and relies on the Pollinations AI service for image generation.
-
-* **React.js:** A JavaScript library for building user interfaces.
-* **Tailwind CSS:** A utility-first CSS framework for rapid UI development.
-* **React Hooks & Context API:** For state management and side effects without external libraries.
-* **React Hot Toast:** For displaying notifications to the user.
-* **Pollinations AI:** Used as the backend service for generating images.
+- **React.js:** UI framework
+- **Tailwind CSS:** Styling with utility classes
+- **React Hooks & Context API:** State management
+- **React Icons:** Icon library for UI states
+- **React Hot Toast:** User notifications
+- **Pollinations AI:** API backend for image generation
 
 ---
 
@@ -114,3 +122,9 @@ The project follows a standard React application structure, organized for scalab
 =======
 └── main.jsx     # Entry point of the application (Vite default)
 
+
+## Special Notes
+
+- The **`gptimg` model** requires a special "upgraded" seed to function properly. Acceptable seed values include keywords like `"flower"` or `"nectar"`. Using a regular numeric seed may result in errors or no image generation.
+- The application will prompt the user if an invalid seed is used with the `gptimg` model.
+- For more details, refer to the [Pollinations API documentation](https://pollinations.ai/).

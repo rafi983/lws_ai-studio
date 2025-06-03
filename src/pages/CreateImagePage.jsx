@@ -15,13 +15,19 @@ const CreateImagePage = () => {
   const [availableModels, setAvailableModels] = useState([]);
   const [modelsLoading, setModelsLoading] = useState(true);
 
+  const [templatePrompts, setTemplatePrompts] = useState([]);
+  const [usedTemplates, setUsedTemplates] = useState([]);
+
+  const [aiPrompts, setAIPrompts] = useState([]);
+  const [usedAIPrompts, setUsedAIPrompts] = useState([]);
+
+  // Fetch models on load
   useEffect(() => {
     (async () => {
       setModelsLoading(true);
       try {
         const modelList = await fetchAvailableModels();
         setAvailableModels(modelList);
-
         const isCurrentModelAvailable = modelList.some(
           (m) => m.value === state.model,
         );
@@ -43,8 +49,64 @@ const CreateImagePage = () => {
     })();
   }, [dispatch, state.model]);
 
+  // Fetch template prompts
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const response = await fetch("/prompts.json");
+        const data = await response.json();
+        setTemplatePrompts(data);
+      } catch (error) {
+        console.error("Error fetching template prompts:", error);
+        toast.error("Failed to load templates.");
+      }
+    };
+    fetchTemplates();
+  }, []);
+
+  // Fetch AI-generated prompts
+  useEffect(() => {
+    const fetchAIPrompts = async () => {
+      try {
+        const response = await fetch("/generated-prompts.json");
+        const data = await response.json();
+        setAIPrompts(data);
+      } catch (error) {
+        console.error("Error fetching AI prompts:", error);
+        toast.error("Failed to load AI prompts.");
+      }
+    };
+    fetchAIPrompts();
+  }, []);
+
   const handlePromptChange = (e) => {
     dispatch({ type: "SET_PROMPT", payload: e.target.value });
+  };
+
+  const handleTemplatesClick = () => {
+    const remaining = templatePrompts.filter((p) => !usedTemplates.includes(p));
+    if (remaining.length === 0) {
+      setUsedTemplates([]);
+      toast.info("All templates used. Resetting the list.");
+      return;
+    }
+    const random = remaining[Math.floor(Math.random() * remaining.length)];
+    setUsedTemplates((prev) => [...prev, random]);
+    dispatch({ type: "SET_PROMPT", payload: random });
+    toast.success(`Template inserted: ${random}`);
+  };
+
+  const handleGeneratePromptsClick = () => {
+    const remaining = aiPrompts.filter((p) => !usedAIPrompts.includes(p));
+    if (remaining.length === 0) {
+      setUsedAIPrompts([]);
+      toast.info("All AI prompts used. Resetting the list.");
+      return;
+    }
+    const random = remaining[Math.floor(Math.random() * remaining.length)];
+    setUsedAIPrompts((prev) => [...prev, random]);
+    dispatch({ type: "SET_PROMPT", payload: random });
+    toast.success("AI generated a new prompt!");
   };
 
   const handleDownload = (image) => {
@@ -58,9 +120,7 @@ const CreateImagePage = () => {
       height: image.height,
       displayUrl: image.displayUrl,
     };
-
     downloadDispatch({ type: "ADD_DOWNLOAD", payload: downloadPayload });
-
     toast.success("Download started!");
 
     fetch(image.permanentUrl)
@@ -86,25 +146,6 @@ const CreateImagePage = () => {
   const handlePromptClear = () => {
     dispatch({ type: "SET_HISTORY", payload: [] });
     localStorage.removeItem("lws-ai-prompt-history");
-  };
-
-  const handleTemplatesClick = () => {
-    const templates = [
-      "A futuristic city skyline at dusk",
-      "A cyberpunk street scene in neon lights",
-      "A peaceful forest under the stars",
-      "A dragon flying over a medieval castle",
-    ];
-    const randomTemplate =
-      templates[Math.floor(Math.random() * templates.length)];
-    dispatch({ type: "SET_PROMPT", payload: randomTemplate });
-    toast.success(`Template inserted: ${randomTemplate}`);
-  };
-
-  const handleGeneratePromptsClick = () => {
-    const generated = `A fantasy ${["landscape", "character", "creature"][Math.floor(Math.random() * 3)]} in a ${["cyberpunk", "steampunk", "futuristic"][Math.floor(Math.random() * 3)]} style.`;
-    dispatch({ type: "SET_PROMPT", payload: generated });
-    toast.success("AI generated a new prompt!");
   };
 
   return (
@@ -139,10 +180,7 @@ const CreateImagePage = () => {
         width={state.width}
         height={state.height}
         setDimensions={(width, height) =>
-          dispatch({
-            type: "SET_DIMENSIONS",
-            payload: { width, height },
-          })
+          dispatch({ type: "SET_DIMENSIONS", payload: { width, height } })
         }
         noLogo={state.noLogo}
         setNoLogo={(value) => dispatch({ type: "SET_NOLOGO", payload: value })}
