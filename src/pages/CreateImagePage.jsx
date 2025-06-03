@@ -17,7 +17,6 @@ const CreateImagePage = () => {
 
   const [templatePrompts, setTemplatePrompts] = useState([]);
   const [usedTemplates, setUsedTemplates] = useState([]);
-
   const [aiPrompts, setAIPrompts] = useState([]);
   const [usedAIPrompts, setUsedAIPrompts] = useState([]);
 
@@ -80,7 +79,14 @@ const CreateImagePage = () => {
   }, []);
 
   const handlePromptChange = (e) => {
-    dispatch({ type: "SET_PROMPT", payload: e.target.value });
+    const newPrompt = e.target.value;
+    dispatch({ type: "SET_PROMPT", payload: newPrompt });
+
+    if (newPrompt.trim() === "") {
+      dispatch({ type: "SET_IMAGES", payload: [] }); // Clear images
+      dispatch({ type: "FINISH_LOADING" }); // Stop loading spinner
+      dispatch({ type: "SET_ERROR", payload: null }); // Clear error
+    }
   };
 
   const handleTemplatesClick = () => {
@@ -113,14 +119,17 @@ const CreateImagePage = () => {
     const downloadPayload = {
       id: image.id,
       permanentUrl: image.permanentUrl,
+      displayUrl: image.displayUrl || image.permanentUrl,
       prompt: image.prompt,
       model: image.model,
       seed: image.seed,
       width: image.width,
       height: image.height,
-      displayUrl: image.displayUrl,
+      status: image.status || "ready",
     };
+
     downloadDispatch({ type: "ADD_DOWNLOAD", payload: downloadPayload });
+
     toast.success("Download started!");
 
     fetch(image.permanentUrl)

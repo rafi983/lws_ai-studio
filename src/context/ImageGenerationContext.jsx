@@ -3,6 +3,7 @@ import React, {
   useContext,
   useReducer,
   useEffect,
+  useRef,
   useCallback,
 } from "react";
 import toast from "react-hot-toast";
@@ -91,6 +92,7 @@ const reducer = (state, action) => {
 
 export const ImageGenerationProvider = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const blobUrlsRef = useRef([]);
 
   useEffect(() => {
     try {
@@ -131,8 +133,9 @@ export const ImageGenerationProvider = ({ children }) => {
   }, [state.promptHistory]);
 
   const generateImages = useCallback(async () => {
-    if (!state.prompt.trim()) {
+    if (!state.prompt || !state.prompt.trim()) {
       toast.error("Please enter a prompt!");
+      dispatch({ type: ActionTypes.FINISH_LOADING }); // Ensure loading state resets
       return;
     }
 
