@@ -42,7 +42,7 @@ This application provides a complete workflow for AI image generation and manage
     - *Error:* Displays an error icon and helpful message.
 - **Image Modal:** Click an image to view it larger, with metadata (prompt, model, seed, dimensions).
 
-## ✨ New Feature: Image Modal Thumbnail Navigation
+### ✨ New Feature: Image Modal Thumbnail Navigation
 
 **Feature:**  
 Users can now click on thumbnail previews inside the image modal to instantly view that specific image.
