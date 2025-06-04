@@ -1,19 +1,21 @@
 import React, { useState } from "react";
 import { useFavourites } from "../context/FavouritesContext";
-import ImageModal from "./ImageModal";
 import { FiLoader, FiClock, FiAlertTriangle } from "react-icons/fi";
 
-export default function ImageCard({ image, onDownload }) {
+export default function ImageCard({ image, onDownload, onClick }) {
   const [hasError, setHasError] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
   const { state, dispatch } = useFavourites();
 
-  const isFav =
-    !!state.favourites[image.id] || !!state.favourites[image.permanentUrl];
+  const imageId = image.id || image.permanentUrl;
+  const isFav = imageId ? !!state.favourites[imageId] : false;
 
   const toggleFav = (e) => {
     e.stopPropagation();
-    dispatch({ type: "TOGGLE_FAVOURITE", payload: image });
+    if (!imageId) {
+      console.warn("Cannot toggle favourite: image ID is missing", image);
+      return;
+    }
+    dispatch({ type: "TOGGLE_FAVOURITE", payload: { ...image, id: imageId } });
   };
 
   const imageUrlToDisplay = image.displayUrl || image.permanentUrl;
@@ -55,7 +57,7 @@ export default function ImageCard({ image, onDownload }) {
       );
     }
 
-    if (image.status === "ready" && !hasError) {
+    if (image.status === "ready" && imageUrlToDisplay && !hasError) {
       return (
         <>
           <img
@@ -66,7 +68,7 @@ export default function ImageCard({ image, onDownload }) {
             loading="lazy"
           />
           {isFav && (
-            <div className="absolute top-2 left-2 bg-pink-600 text-xs text-white px-2 py-0.5 rounded-full">
+            <div className="absolute top-2 left-2 bg-pink-600 text-xs text-white px-2 py-0.5 rounded-full z-10">
               ★ Favourite
             </div>
           )}
@@ -82,13 +84,7 @@ export default function ImageCard({ image, onDownload }) {
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
-                    2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09
-                    1.09-1.28 2.76-2.09 4.5-2.09
-                    3.08 0 5.5 2.42 5.5 5.5
-                    0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-                  />
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3c3.08 0 5.5 2.42 5.5 5.5 0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                 </svg>
               ) : (
                 <svg
@@ -98,13 +94,7 @@ export default function ImageCard({ image, onDownload }) {
                   strokeWidth="2"
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
-                    2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09
-                    1.09-1.28 2.76-2.09 4.5-2.09
-                    3.08 0 5.5 2.42 5.5 5.5
-                    0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-                  />
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3c3.08 0 5.5 2.42 5.5 5.5 0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                 </svg>
               )}
             </button>
@@ -139,21 +129,33 @@ export default function ImageCard({ image, onDownload }) {
       );
     }
 
+    if (image.status === "ready" && (!imageUrlToDisplay || hasError)) {
+      if (!hasError) setHasError(true);
+      return (
+        <div className="flex flex-col items-center justify-center gap-2 text-red-400">
+          <FiAlertTriangle className="w-8 h-8" />
+          <p className="text-sm text-center">Image data incomplete.</p>
+        </div>
+      );
+    }
     return null;
   };
+
+  const isClickable =
+    image.status === "ready" && imageUrlToDisplay && !hasError;
 
   return (
     <>
       <div
-        className="relative group rounded-xl overflow-hidden bg-zinc-900 cursor-pointer w-full h-48 flex items-center justify-center text-center p-4"
-        onClick={() => setModalOpen(true)}
+        className={`relative group rounded-xl overflow-hidden bg-zinc-900 w-full h-48 flex items-center justify-center text-center p-4 ${isClickable ? "cursor-pointer" : "cursor-default"}`}
+        onClick={() => {
+          if (isClickable && onClick) {
+            onClick(); // Call the passed onClick handler (parent will know the index)
+          }
+        }}
       >
         {renderContent()}
       </div>
-
-      {modalOpen && (
-        <ImageModal image={image} onClose={() => setModalOpen(false)} />
-      )}
     </>
   );
 }

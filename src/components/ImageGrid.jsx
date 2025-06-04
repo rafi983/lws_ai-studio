@@ -1,17 +1,27 @@
 import React from "react";
 import ImageCard from "./ImageCard";
+import ImageSkeleton from "./ImageSkeleton";
+import FailedImageCard from "./FailedImageCard";
 
-const ImageGrid = ({ images, loading, error, onDownload }) => {
+const ImageGrid = ({ images, loading, error, onDownload, onImageClick }) => {
   const showPlaceholder = !loading && images.length === 0 && !error;
+
+  if (
+    loading &&
+    images.every((img) => img.status === "queued" || img.status === "loading")
+  ) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        {Array.from({ length: 9 }).map((_, index) => (
+          <ImageSkeleton key={index} />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <>
-      {loading && (
-        <p className="text-center py-4 text-zinc-300">
-          Generating images... Please wait.
-        </p>
-      )}
-      {error && <p className="text-center text-red-400">{error}</p>}
+      {error && <p className="text-center text-red-400 py-4">{error}</p>}
       {showPlaceholder && (
         <div className="flex items-center justify-center text-center h-64 border-2 border-dashed border-zinc-800 rounded-xl">
           <p className="text-zinc-500">
@@ -23,13 +33,31 @@ const ImageGrid = ({ images, loading, error, onDownload }) => {
       )}
       {images.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {images.map((image, index) => (
-            <ImageCard
-              key={image.id || index}
-              image={image}
-              onDownload={onDownload}
-            />
-          ))}
+          {images.map((image, index) => {
+            if (
+              image.status === "error" &&
+              !image.displayUrl &&
+              !image.permanentUrl
+            ) {
+              return <FailedImageCard key={image.id || `failed-${index}`} />;
+            }
+            return (
+              <ImageCard
+                key={image.id || image.permanentUrl || `img-${index}`}
+                image={image}
+                onDownload={onDownload}
+                onClick={() => {
+                  if (
+                    image.status === "ready" &&
+                    (image.displayUrl || image.permanentUrl) &&
+                    onImageClick
+                  ) {
+                    onImageClick(index); // Pass the original index from the 'images' array
+                  }
+                }}
+              />
+            );
+          })}
         </div>
       )}
     </>

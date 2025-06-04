@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import PromptInput from "../components/PromptInput";
 import AdvancedSettings from "../components/AdvancedSettings";
 import ImageGrid from "../components/ImageGrid";
 import PromptHistory from "../components/PromptHistory";
+import ImageModal from "../components/ImageModal"; // Import ImageModal
 import { useImageGeneration } from "../context/ImageGenerationContext";
 import { useDownloads } from "../context/DownloadsContext";
 import { fetchAvailableModels } from "../api/pollinationsAPI";
@@ -20,7 +21,17 @@ const CreateImagePage = () => {
   const [aiPrompts, setAIPrompts] = useState([]);
   const [usedAIPrompts, setUsedAIPrompts] = useState([]);
 
-  // Fetch models on load
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentModalImageIndex, setCurrentModalImageIndex] = useState(0);
+  const [modalImages, setModalImages] = useState([]);
+
+  useEffect(() => {
+    const readyImages = state.images.filter(
+      (img) => img.status === "ready" && (img.displayUrl || img.permanentUrl),
+    );
+    setModalImages(readyImages);
+  }, [state.images]);
+
   useEffect(() => {
     (async () => {
       setModelsLoading(true);
@@ -30,123 +41,131 @@ const CreateImagePage = () => {
         const isCurrentModelAvailable = modelList.some(
           (m) => m.value === state.model,
         );
-        if (!isCurrentModelAvailable) {
+        if (!isCurrentModelAvailable && modelList.length > 0) {
           dispatch({
             type: "SET_MODEL",
             payload: modelList[0]?.value || "playground-v2.5",
           });
+        } else if (!isCurrentModelAvailable && modelList.length === 0) {
+          dispatch({ type: "SET_MODEL", payload: "playground-v2.5" });
         }
       } catch (err) {
-        toast.error(err.message);
+        toast.error(String(err.message || "Failed to fetch models."));
         setAvailableModels([
           { value: "playground-v2.5", label: "Playground V2.5 (Fallback)" },
         ]);
-        dispatch({ type: "SET_MODEL", payload: "playground-v2.5" });
+        if (state.model !== "playground-v2.5")
+          dispatch({ type: "SET_MODEL", payload: "playground-v2.5" });
       } finally {
         setModelsLoading(false);
       }
     })();
   }, [dispatch, state.model]);
 
-  // Fetch template prompts
   useEffect(() => {
-    const fetchTemplates = async () => {
+    const fetchJsonData = async (url, setData, setLoadedState, name) => {
       try {
-        const response = await fetch("/prompts.json");
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
         const data = await response.json();
-        setTemplatePrompts(data);
+        setData(data);
       } catch (error) {
-        console.error("Error fetching template prompts:", error);
-        toast.error("Failed to load templates.");
+        console.error(`Error fetching ${name}:`, error);
+        toast.error(`Failed to load ${name}.`);
       }
     };
-    fetchTemplates();
-  }, []);
-
-  // Fetch AI-generated prompts
-  useEffect(() => {
-    const fetchAIPrompts = async () => {
-      try {
-        const response = await fetch("/generated-prompts.json");
-        const data = await response.json();
-        setAIPrompts(data);
-      } catch (error) {
-        console.error("Error fetching AI prompts:", error);
-        toast.error("Failed to load AI prompts.");
-      }
-    };
-    fetchAIPrompts();
+    fetchJsonData("/prompts.json", setTemplatePrompts, null, "templates");
+    fetchJsonData("/generated-prompts.json", setAIPrompts, null, "AI prompts");
   }, []);
 
   const handlePromptChange = (e) => {
     const newPrompt = e.target.value;
     dispatch({ type: "SET_PROMPT", payload: newPrompt });
-
-    if (newPrompt.trim() === "") {
-      dispatch({ type: "SET_IMAGES", payload: [] }); // Clear images
-      dispatch({ type: "FINISH_LOADING" }); // Stop loading spinner
-      dispatch({ type: "SET_ERROR", payload: null }); // Clear error
-    }
   };
 
-  const handleTemplatesClick = () => {
-    const remaining = templatePrompts.filter((p) => !usedTemplates.includes(p));
-    if (remaining.length === 0) {
-      setUsedTemplates([]);
-      toast.info("All templates used. Resetting the list.");
+  const handleRandomPromptSelection = (prompts, used, setUsed, type) => {
+    if (prompts.length === 0) {
+      toast.error(`${type} are not loaded yet.`);
       return;
     }
-    const random = remaining[Math.floor(Math.random() * remaining.length)];
-    setUsedTemplates((prev) => [...prev, random]);
-    dispatch({ type: "SET_PROMPT", payload: random });
-    toast.success(`Template inserted: ${random}`);
-  };
-
-  const handleGeneratePromptsClick = () => {
-    const remaining = aiPrompts.filter((p) => !usedAIPrompts.includes(p));
+    let remaining = prompts.filter((p) => !used.includes(p));
     if (remaining.length === 0) {
-      setUsedAIPrompts([]);
-      toast.info("All AI prompts used. Resetting the list.");
-      return;
+      setUsed([]);
+      remaining = prompts; // Reset and use all prompts again
+      toast.info(`All ${type} used. Resetting the list. Pick again!`);
+      if (remaining.length === 0) {
+        // Still no prompts after reset (e.g. if original was empty)
+        toast.error(`No ${type} available to select.`);
+        return;
+      }
     }
     const random = remaining[Math.floor(Math.random() * remaining.length)];
-    setUsedAIPrompts((prev) => [...prev, random]);
+    setUsed((prev) => [...prev, random]);
     dispatch({ type: "SET_PROMPT", payload: random });
-    toast.success("AI generated a new prompt!");
+    toast.success(
+      `${type === "Templates" ? "Template" : "AI Prompt"} inserted: ${random.substring(0, 30)}...`,
+    );
   };
 
-  const handleDownload = (image) => {
-    const downloadPayload = {
-      id: image.id,
-      permanentUrl: image.permanentUrl,
-      displayUrl: image.displayUrl || image.permanentUrl,
-      prompt: image.prompt,
-      model: image.model,
-      seed: image.seed,
-      width: image.width,
-      height: image.height,
-      status: image.status || "ready",
-    };
+  const handleTemplatesClick = () =>
+    handleRandomPromptSelection(
+      templatePrompts,
+      usedTemplates,
+      setUsedTemplates,
+      "Templates",
+    );
+  const handleGeneratePromptsClick = () =>
+    handleRandomPromptSelection(
+      aiPrompts,
+      usedAIPrompts,
+      setUsedAIPrompts,
+      "AI Prompts",
+    );
 
-    downloadDispatch({ type: "ADD_DOWNLOAD", payload: downloadPayload });
-
-    toast.success("Download started!");
-
-    fetch(image.permanentUrl)
-      .then((res) => res.blob())
-      .then((blob) => {
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = `${image.prompt
-          .slice(0, 20)
-          .replace(/[^a-zA-Z0-9]/g, "_")}-${Date.now()}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(a.href);
-      })
-      .catch(() => toast.error("Download failed."));
-  };
+  const handleDownload = useCallback(
+    (image) => {
+      if (!image || !image.permanentUrl) {
+        toast.error("Cannot download: Image data is incomplete.");
+        return;
+      }
+      const downloadPayload = {
+        id: image.id || image.permanentUrl,
+        permanentUrl: image.permanentUrl,
+        displayUrl: image.displayUrl || image.permanentUrl,
+        prompt: image.prompt || "Untitled",
+        model: image.model || "Unknown",
+        seed: image.seed || "N/A",
+        width: image.width || 0,
+        height: image.height || 0,
+        status: image.status || "ready",
+      };
+      downloadDispatch({ type: "ADD_DOWNLOAD", payload: downloadPayload });
+      fetch(image.permanentUrl)
+        .then((res) => {
+          if (!res.ok)
+            throw new Error(`Failed to fetch image: ${res.statusText}`);
+          return res.blob();
+        })
+        .then((blob) => {
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          const safePrompt = (image.prompt || "ai_image")
+            .slice(0, 30)
+            .replace(/[^a-zA-Z0-9]/g, "_");
+          a.download = `${safePrompt}-${Date.now()}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(a.href);
+          toast.success("Image download initiated!");
+        })
+        .catch((err) => {
+          console.error("Download error:", err);
+          toast.error(`Download failed: ${err.message}`);
+        });
+    },
+    [downloadDispatch],
+  );
 
   const handlePromptSelect = (selected) => {
     dispatch({ type: "SET_PROMPT", payload: selected });
@@ -155,13 +174,89 @@ const CreateImagePage = () => {
   const handlePromptClear = () => {
     dispatch({ type: "SET_HISTORY", payload: [] });
     localStorage.removeItem("lws-ai-prompt-history");
+    toast.success("Prompt history cleared.");
+  };
+
+  const openModalWithImage = (originalImageIndex) => {
+    const clickedImage = state.images[originalImageIndex];
+    // Find the clicked image's index within the filtered `modalImages` array
+    const indexInModalImages = modalImages.findIndex(
+      (img) =>
+        (img.id && img.id === clickedImage.id) ||
+        img.permanentUrl === clickedImage.permanentUrl,
+    );
+
+    if (indexInModalImages !== -1) {
+      setCurrentModalImageIndex(indexInModalImages);
+      setIsModalOpen(true);
+    } else {
+      // This might happen if the image clicked was not 'ready' or had no URL,
+      // though ImageCard's onClick logic should prevent this.
+      toast.error("This image is not ready for preview yet.");
+      console.warn(
+        "Clicked image not found in modal-ready images:",
+        clickedImage,
+      );
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const goToNextImage = () => {
+    if (modalImages.length === 0) return;
+    setCurrentModalImageIndex(
+      (prevIndex) => (prevIndex + 1) % modalImages.length,
+    );
+  };
+
+  const goToPreviousImage = () => {
+    if (modalImages.length === 0) return;
+    setCurrentModalImageIndex(
+      (prevIndex) => (prevIndex - 1 + modalImages.length) % modalImages.length,
+    );
   };
 
   return (
     <div>
       <h2 className="text-4xl font-bold mb-8">
-        Let's create a masterpiece, Alvian! <span className="text-2xl">👋</span>
+        Let's create a masterpiece!{" "}
+        <span className="text-2xl animate-wave inline-block">👋</span>
       </h2>
+      <style jsx global>{`
+        @keyframes wave-animation {
+          0% {
+            transform: rotate(0deg);
+          }
+          10% {
+            transform: rotate(14deg);
+          }
+          20% {
+            transform: rotate(-8deg);
+          }
+          30% {
+            transform: rotate(14deg);
+          }
+          40% {
+            transform: rotate(-4deg);
+          }
+          50% {
+            transform: rotate(10deg);
+          }
+          60% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(0deg);
+          }
+        }
+        .animate-wave {
+          display: inline-block;
+          animation: wave-animation 2.5s infinite;
+          transform-origin: 70% 70%;
+        }
+      `}</style>
 
       <PromptHistory
         history={state.promptHistory}
@@ -173,7 +268,12 @@ const CreateImagePage = () => {
         prompt={state.prompt}
         onChange={handlePromptChange}
         onGenerate={generateImages}
-        loading={state.loading}
+        loading={
+          state.loading &&
+          state.images.some(
+            (img) => img.status === "loading" || img.status === "queued",
+          )
+        }
         modelsLoading={modelsLoading}
         onTemplatesClick={handleTemplatesClick}
         onGeneratePromptsClick={handleGeneratePromptsClick}
@@ -197,9 +297,22 @@ const CreateImagePage = () => {
 
       <ImageGrid
         images={state.images}
-        loading={state.loading}
+        loading={
+          state.loading && state.images.every((img) => img.status === "queued")
+        }
         error={state.error}
         onDownload={handleDownload}
+        onImageClick={openModalWithImage}
+      />
+
+      <ImageModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        images={modalImages}
+        currentIndex={currentModalImageIndex}
+        onPrev={goToPreviousImage}
+        onNext={goToNextImage}
+        onSelect={(index) => setCurrentModalImageIndex(index)} // ✅ Add this line
       />
     </div>
   );
