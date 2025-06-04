@@ -4,7 +4,7 @@ import PromptInput from "../components/PromptInput";
 import AdvancedSettings from "../components/AdvancedSettings";
 import ImageGrid from "../components/ImageGrid";
 import PromptHistory from "../components/PromptHistory";
-import ImageModal from "../components/ImageModal"; // Import ImageModal
+import ImageModal from "../components/ImageModal";
 import { useImageGeneration } from "../context/ImageGenerationContext";
 import { useDownloads } from "../context/DownloadsContext";
 import { fetchAvailableModels } from "../api/pollinationsAPI";
@@ -63,24 +63,22 @@ const CreateImagePage = () => {
   }, [dispatch, state.model]);
 
   useEffect(() => {
-    const fetchJsonData = async (url, setData, setLoadedState, name) => {
+    const fetchJsonData = async (url, setData, name) => {
       try {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP error ${response.status}`);
         const data = await response.json();
         setData(data);
       } catch (error) {
-        console.error(`Error fetching ${name}:`, error);
         toast.error(`Failed to load ${name}.`);
       }
     };
-    fetchJsonData("/prompts.json", setTemplatePrompts, null, "templates");
-    fetchJsonData("/generated-prompts.json", setAIPrompts, null, "AI prompts");
+    fetchJsonData("/prompts.json", setTemplatePrompts, "templates");
+    fetchJsonData("/generated-prompts.json", setAIPrompts, "AI prompts");
   }, []);
 
   const handlePromptChange = (e) => {
-    const newPrompt = e.target.value;
-    dispatch({ type: "SET_PROMPT", payload: newPrompt });
+    dispatch({ type: "SET_PROMPT", payload: e.target.value });
   };
 
   const handleRandomPromptSelection = (prompts, used, setUsed, type) => {
@@ -91,10 +89,9 @@ const CreateImagePage = () => {
     let remaining = prompts.filter((p) => !used.includes(p));
     if (remaining.length === 0) {
       setUsed([]);
-      remaining = prompts; // Reset and use all prompts again
+      remaining = prompts;
       toast.info(`All ${type} used. Resetting the list. Pick again!`);
       if (remaining.length === 0) {
-        // Still no prompts after reset (e.g. if original was empty)
         toast.error(`No ${type} available to select.`);
         return;
       }
@@ -114,6 +111,7 @@ const CreateImagePage = () => {
       setUsedTemplates,
       "Templates",
     );
+
   const handleGeneratePromptsClick = () =>
     handleRandomPromptSelection(
       aiPrompts,
@@ -160,7 +158,6 @@ const CreateImagePage = () => {
           toast.success("Image download initiated!");
         })
         .catch((err) => {
-          console.error("Download error:", err);
           toast.error(`Download failed: ${err.message}`);
         });
     },
@@ -179,30 +176,20 @@ const CreateImagePage = () => {
 
   const openModalWithImage = (originalImageIndex) => {
     const clickedImage = state.images[originalImageIndex];
-    // Find the clicked image's index within the filtered `modalImages` array
     const indexInModalImages = modalImages.findIndex(
       (img) =>
         (img.id && img.id === clickedImage.id) ||
         img.permanentUrl === clickedImage.permanentUrl,
     );
-
     if (indexInModalImages !== -1) {
       setCurrentModalImageIndex(indexInModalImages);
       setIsModalOpen(true);
     } else {
-      // This might happen if the image clicked was not 'ready' or had no URL,
-      // though ImageCard's onClick logic should prevent this.
       toast.error("This image is not ready for preview yet.");
-      console.warn(
-        "Clicked image not found in modal-ready images:",
-        clickedImage,
-      );
     }
   };
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-  };
+  const closeModal = () => setIsModalOpen(false);
 
   const goToNextImage = () => {
     if (modalImages.length === 0) return;
@@ -221,7 +208,7 @@ const CreateImagePage = () => {
   return (
     <div>
       <h2 className="text-4xl font-bold mb-8">
-        Let's create a masterpiece!{" "}
+        Let's create a masterpiece, Alvian!{" "}
         <span className="text-2xl animate-wave inline-block">👋</span>
       </h2>
       <style jsx global>{`
@@ -312,7 +299,7 @@ const CreateImagePage = () => {
         currentIndex={currentModalImageIndex}
         onPrev={goToPreviousImage}
         onNext={goToNextImage}
-        onSelect={(index) => setCurrentModalImageIndex(index)} // ✅ Add this line
+        onSelect={(index) => setCurrentModalImageIndex(index)}
       />
     </div>
   );

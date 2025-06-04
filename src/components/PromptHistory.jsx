@@ -60,13 +60,15 @@ const PromptHistory = ({ history, onSelect, onClear }) => {
           collapsed ? "max-h-0 opacity-0" : "max-h-60 opacity-100"
         }`}
       >
-        <input
-          type="text"
-          placeholder="Search prompts..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full mb-2 px-3 py-2 text-sm bg-zinc-900/10 border border-zinc-700/70 rounded text-white placeholder-zinc-400"
-        />
+        <div className="w-full mb-2 rounded border border-zinc-700/70 bg-[#0f0f0f] focus-within:ring-2 focus-within:ring-purple-500 transition">
+          <input
+            type="text"
+            placeholder="Search prompts..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full px-3 py-2 text-sm bg-transparent rounded text-white placeholder-zinc-400 focus:outline-none"
+          />
+        </div>
 
         <ul className="max-h-40 overflow-y-auto custom-scrollbar space-y-1">
           {filteredHistory.length === 0 ? (

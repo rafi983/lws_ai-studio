@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useFavourites } from "../context/FavouritesContext";
-import { FiLoader, FiClock, FiAlertTriangle } from "react-icons/fi";
+import { FiClock, FiAlertTriangle } from "react-icons/fi";
 
 export default function ImageCard({ image, onDownload, onClick }) {
   const [hasError, setHasError] = useState(false);
@@ -36,14 +36,47 @@ export default function ImageCard({ image, onDownload, onClick }) {
 
     if (image.status === "loading") {
       return (
-        <div className="flex flex-col items-center justify-center gap-2 text-zinc-400">
-          <FiLoader className="w-8 h-8 animate-spin" />
-          <p className="text-sm text-center">
-            Creating your masterpiece...
+        <div className="flex flex-col items-center justify-center gap-3 text-zinc-300">
+          {/* Custom Animated Spinner */}
+          <div className="relative w-12 h-12">
+            <svg
+              className="animate-spin w-12 h-12 text-purple-500"
+              viewBox="0 0 50 50"
+              fill="none"
+            >
+              <circle
+                className="opacity-30"
+                cx="25"
+                cy="25"
+                r="20"
+                stroke="currentColor"
+                strokeWidth="5"
+              />
+              <path
+                d="M25 5
+               a20 20 0 0 1 0 40
+               a20 20 0 0 1 0 -40"
+                stroke="currentColor"
+                strokeWidth="5"
+                strokeLinecap="round"
+                className="text-purple-600"
+                fill="none"
+              />
+            </svg>
+          </div>
+
+          {/* Loading Message */}
+          <p className="text-sm text-center leading-snug text-zinc-400">
+            Generating your masterpiece…
             <br />
-            This usually takes 10-15 seconds.
+            Please wait{" "}
+            <span className="text-purple-400 font-medium">10–15 seconds</span>.
           </p>
-          <div className="w-1/2 h-1 bg-purple-600 animate-pulse rounded-full mt-2"></div>
+
+          {/* Progress Bar */}
+          <div className="w-3/5 h-1 bg-purple-700/30 rounded-full overflow-hidden">
+            <div className="h-full w-2/3 bg-gradient-to-r from-purple-500 via-purple-400 to-purple-600 animate-pulse rounded-full"></div>
+          </div>
         </div>
       );
     }
@@ -147,10 +180,10 @@ export default function ImageCard({ image, onDownload, onClick }) {
   return (
     <>
       <div
-        className={`relative group rounded-xl overflow-hidden bg-zinc-900 w-full h-48 flex items-center justify-center text-center p-4 ${isClickable ? "cursor-pointer" : "cursor-default"}`}
+        className={`relative group rounded-xl overflow-hidden bg-gradient-to-br from-[#0f0f0f] to-[#1a0b2e] w-full h-48 flex items-center justify-center text-center p-4 ${isClickable ? "cursor-pointer" : "cursor-default"}`}
         onClick={() => {
           if (isClickable && onClick) {
-            onClick(); // Call the passed onClick handler (parent will know the index)
+            onClick();
           }
         }}
       >
