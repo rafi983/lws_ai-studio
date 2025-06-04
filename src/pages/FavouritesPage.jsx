@@ -2,7 +2,7 @@ import React from "react";
 import { useFavourites } from "../context/FavouritesContext";
 import { useDownloads } from "../context/DownloadsContext";
 import ImageCard from "../components/ImageCard";
-import toast from "react-hot-toast";
+import { showSuccessToast, showErrorToast } from "../utils/toastUtils";
 
 const FavouritesPage = () => {
   const { state: favState } = useFavourites();
@@ -26,7 +26,7 @@ const FavouritesPage = () => {
       payload: downloadPayload,
     });
 
-    toast.success("Download started!");
+    showSuccessToast("Download started!");
 
     fetch(image.permanentUrl)
       .then((res) => res.blob())
@@ -41,7 +41,7 @@ const FavouritesPage = () => {
         document.body.removeChild(a);
         URL.revokeObjectURL(a.href);
       })
-      .catch(() => toast.error("Download failed."));
+      .catch(() => showErrorToast("Download failed."));
   };
 
   return (

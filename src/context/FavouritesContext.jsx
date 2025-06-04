@@ -1,5 +1,9 @@
 import React, { createContext, useReducer, useContext, useEffect } from "react";
-import toast from "react-hot-toast";
+import {
+  showWarningToast,
+  showErrorToast,
+  showSuccessToast,
+} from "../utils/toastUtils";
 
 const ActionTypes = {
   TOGGLE_FAVOURITE: "TOGGLE_FAVOURITE",
@@ -7,21 +11,10 @@ const ActionTypes = {
 };
 
 const FavouritesContext = createContext();
-
 const LOCAL_STORAGE_FAVOURITES_KEY = "lws-ai-favourites";
 
 const initialState = {
   favourites: {},
-};
-
-const showWarningToast = (message) => {
-  toast(message, {
-    icon: "⚠️",
-    style: {
-      background: "#facc15", // Amber background
-      color: "#000", // Black text
-    },
-  });
 };
 
 const reducer = (state, action) => {
@@ -40,17 +33,19 @@ const reducer = (state, action) => {
 
       if (newFavourites[imageId]) {
         delete newFavourites[imageId];
-        toast.success(
+        showSuccessToast(
           `${image.prompt ? "'" + image.prompt.substring(0, 20) + "...'" : "Image"} removed from favourites!`,
         );
       } else {
         newFavourites[imageId] = image;
-        toast.success(
+        showSuccessToast(
           `${image.prompt ? "'" + image.prompt.substring(0, 20) + "...'" : "Image"} added to favourites!`,
         );
       }
+
       return { ...state, favourites: newFavourites };
     }
+
     case ActionTypes.SET_FAVOURITES:
       return {
         ...state,
@@ -61,6 +56,7 @@ const reducer = (state, action) => {
             ? action.payload
             : {},
       };
+
     default:
       return state;
   }
@@ -92,11 +88,9 @@ export const FavouritesProvider = ({ children }) => {
           localStorage.removeItem(LOCAL_STORAGE_FAVOURITES_KEY);
           dispatch({ type: ActionTypes.SET_FAVOURITES, payload: {} });
         }
-      } else {
-        dispatch({ type: ActionTypes.SET_FAVOURITES, payload: {} });
       }
     } catch (err) {
-      toast.error(
+      showErrorToast(
         `Error loading favourites: ${err.message}. Favourites have been cleared.`,
       );
       localStorage.removeItem(LOCAL_STORAGE_FAVOURITES_KEY);
@@ -116,13 +110,13 @@ export const FavouritesProvider = ({ children }) => {
           JSON.stringify(state.favourites),
         );
       } catch (error) {
-        toast.error(
+        showErrorToast(
           `Failed to save favourites to your browser: ${error.message}`,
         );
       }
     } else if (typeof state.favourites !== "undefined") {
       showWarningToast(
-        "An attempt to save an invalid favourites collection was prevented. If you see this often, please report it.",
+        "An attempt to save an invalid favourites collection was prevented.",
       );
     }
   }, [state.favourites]);

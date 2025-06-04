@@ -6,8 +6,12 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import toast from "react-hot-toast";
 import { generateImageFromApi } from "../api/pollinationsAPI";
+import {
+  showSuccessToast,
+  showErrorToast,
+  showWarningToast,
+} from "../utils/toastUtils";
 
 const ActionTypes = {
   SET_PROMPT: "SET_PROMPT",
@@ -108,7 +112,7 @@ export const ImageGenerationProvider = ({ children }) => {
         dispatch({ type: ActionTypes.SET_HISTORY, payload: savedHistory });
       }
     } catch (err) {
-      console.error("Failed to load saved data:", err);
+      showErrorToast("Failed to load saved image data.");
     }
   }, []);
 
@@ -134,8 +138,8 @@ export const ImageGenerationProvider = ({ children }) => {
 
   const generateImages = useCallback(async () => {
     if (!state.prompt || !state.prompt.trim()) {
-      toast.error("Please enter a prompt!");
-      dispatch({ type: ActionTypes.FINISH_LOADING }); // Ensure loading state resets
+      showErrorToast("Please enter a prompt!");
+      dispatch({ type: ActionTypes.FINISH_LOADING });
       return;
     }
 
@@ -184,9 +188,11 @@ export const ImageGenerationProvider = ({ children }) => {
           if (!firstImageUrl) firstImageUrl = apiResponse.displayUrl;
         } else {
           imageResult = { status: "error" };
+          showWarningToast("One of the images could not be generated.");
         }
       } catch {
         imageResult = { status: "error" };
+        showWarningToast("Image generation failed for one item.");
       }
 
       dispatch({ type: ActionTypes.SET_IMAGE, index: i, payload: imageResult });
@@ -199,7 +205,7 @@ export const ImageGenerationProvider = ({ children }) => {
         type: ActionTypes.ADD_TO_HISTORY,
         payload: { prompt: state.prompt, imageUrl: firstImageUrl },
       });
-      toast.success("Prompt saved to history!");
+      showSuccessToast("Prompt saved to history!");
     }
   }, [
     state.prompt,

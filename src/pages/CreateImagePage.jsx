@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from "react";
-import toast from "react-hot-toast";
 import PromptInput from "../components/PromptInput";
 import AdvancedSettings from "../components/AdvancedSettings";
 import ImageGrid from "../components/ImageGrid";
@@ -8,6 +7,11 @@ import ImageModal from "../components/ImageModal";
 import { useImageGeneration } from "../context/ImageGenerationContext";
 import { useDownloads } from "../context/DownloadsContext";
 import { fetchAvailableModels } from "../api/pollinationsAPI";
+import {
+  showSuccessToast,
+  showErrorToast,
+  showWarningToast,
+} from "../utils/toastUtils";
 
 const CreateImagePage = () => {
   const { state, dispatch, generateImages } = useImageGeneration();
@@ -50,7 +54,7 @@ const CreateImagePage = () => {
           dispatch({ type: "SET_MODEL", payload: "playground-v2.5" });
         }
       } catch (err) {
-        toast.error(String(err.message || "Failed to fetch models."));
+        showErrorToast(String(err.message || "Failed to fetch models."));
         setAvailableModels([
           { value: "playground-v2.5", label: "Playground V2.5 (Fallback)" },
         ]);
@@ -70,7 +74,7 @@ const CreateImagePage = () => {
         const data = await response.json();
         setData(data);
       } catch (error) {
-        toast.error(`Failed to load ${name}.`);
+        showErrorToast(`Failed to load ${name}.`);
       }
     };
     fetchJsonData("/prompts.json", setTemplatePrompts, "templates");
@@ -78,28 +82,34 @@ const CreateImagePage = () => {
   }, []);
 
   const handlePromptChange = (e) => {
-    dispatch({ type: "SET_PROMPT", payload: e.target.value });
+    const value = e.target.value;
+    dispatch({ type: "SET_PROMPT", payload: value });
+
+    if (value.trim() === "") {
+      dispatch({ type: "SET_IMAGES", payload: [] });
+      dispatch({ type: "FINISH_LOADING" });
+    }
   };
 
   const handleRandomPromptSelection = (prompts, used, setUsed, type) => {
     if (prompts.length === 0) {
-      toast.error(`${type} are not loaded yet.`);
+      showErrorToast(`${type} are not loaded yet.`);
       return;
     }
     let remaining = prompts.filter((p) => !used.includes(p));
     if (remaining.length === 0) {
       setUsed([]);
       remaining = prompts;
-      toast.info(`All ${type} used. Resetting the list. Pick again!`);
+      showWarningToast(`All ${type} used. Resetting the list. Pick again!`);
       if (remaining.length === 0) {
-        toast.error(`No ${type} available to select.`);
+        showErrorToast(`No ${type} available to select.`);
         return;
       }
     }
     const random = remaining[Math.floor(Math.random() * remaining.length)];
     setUsed((prev) => [...prev, random]);
     dispatch({ type: "SET_PROMPT", payload: random });
-    toast.success(
+    showSuccessToast(
       `${type === "Templates" ? "Template" : "AI Prompt"} inserted: ${random.substring(0, 30)}...`,
     );
   };
@@ -123,7 +133,7 @@ const CreateImagePage = () => {
   const handleDownload = useCallback(
     (image) => {
       if (!image || !image.permanentUrl) {
-        toast.error("Cannot download: Image data is incomplete.");
+        showErrorToast("Cannot download: Image data is incomplete.");
         return;
       }
       const downloadPayload = {
@@ -155,10 +165,10 @@ const CreateImagePage = () => {
           a.click();
           document.body.removeChild(a);
           URL.revokeObjectURL(a.href);
-          toast.success("Image download initiated!");
+          showSuccessToast("Image download initiated!");
         })
         .catch((err) => {
-          toast.error(`Download failed: ${err.message}`);
+          showErrorToast(`Download failed: ${err.message}`);
         });
     },
     [downloadDispatch],
@@ -171,7 +181,7 @@ const CreateImagePage = () => {
   const handlePromptClear = () => {
     dispatch({ type: "SET_HISTORY", payload: [] });
     localStorage.removeItem("lws-ai-prompt-history");
-    toast.success("Prompt history cleared.");
+    showSuccessToast("Prompt history cleared.");
   };
 
   const openModalWithImage = (originalImageIndex) => {
@@ -185,7 +195,7 @@ const CreateImagePage = () => {
       setCurrentModalImageIndex(indexInModalImages);
       setIsModalOpen(true);
     } else {
-      toast.error("This image is not ready for preview yet.");
+      showErrorToast("This image is not ready for preview yet.");
     }
   };
 

@@ -1,22 +1,15 @@
 import React, { createContext, useContext, useReducer, useEffect } from "react";
-import toast from "react-hot-toast";
+import {
+  showWarningToast,
+  showErrorToast,
+  showSuccessToast,
+} from "../utils/toastUtils";
 
 const DownloadsContext = createContext();
+const LOCAL_STORAGE_DOWNLOADS_KEY = "lws-ai-downloads";
 
 const ActionTypes = {
   ADD_DOWNLOAD: "ADD_DOWNLOAD",
-};
-
-const LOCAL_STORAGE_DOWNLOADS_KEY = "lws-ai-downloads";
-
-const showWarningToast = (message) => {
-  toast(message, {
-    icon: "⚠️",
-    style: {
-      background: "#facc15", // Amber background
-      color: "#000", // Black text
-    },
-  });
 };
 
 const loadInitialState = () => {
@@ -37,14 +30,14 @@ const loadInitialState = () => {
           )
           .map((img) => ({
             ...img,
-            displayUrl: img.displayUrl || img.permanentUrl, // Preserve displayUrl if available
+            displayUrl: img.displayUrl || img.permanentUrl,
           })),
       };
     }
     showWarningToast("Stored downloads data was invalid and has been cleared.");
     localStorage.removeItem(LOCAL_STORAGE_DOWNLOADS_KEY);
   } catch (error) {
-    toast.error(
+    showErrorToast(
       `Could not load downloads: ${error.message}. Downloads have been cleared.`,
     );
     localStorage.removeItem(LOCAL_STORAGE_DOWNLOADS_KEY);
@@ -71,7 +64,7 @@ const downloadsReducer = (state, action) => {
       const imageId = String(incomingImage.id);
 
       if (state.downloads.find((item) => String(item.id) === imageId)) {
-        toast.success("Image is already in your downloads list!");
+        showSuccessToast("Image is already in your downloads list!");
         return state;
       }
 
@@ -80,14 +73,14 @@ const downloadsReducer = (state, action) => {
           (item) => item.permanentUrl === incomingImage.permanentUrl,
         )
       ) {
-        toast.success("Image (by URL) is already in your downloads list!");
+        showSuccessToast("Image (by URL) is already in your downloads list!");
         return state;
       }
 
       const imageToStore = {
         id: imageId,
         permanentUrl: incomingImage.permanentUrl,
-        displayUrl: incomingImage.displayUrl || incomingImage.permanentUrl, // Preserve correct displayUrl
+        displayUrl: incomingImage.displayUrl || incomingImage.permanentUrl,
         prompt: incomingImage.prompt || "No prompt",
         model: incomingImage.model || "Unknown model",
         seed: incomingImage.seed || "N/A",
@@ -100,7 +93,7 @@ const downloadsReducer = (state, action) => {
         ...incomingImage,
       };
 
-      toast.success("Image added to downloads!");
+      showSuccessToast("Image added to downloads!");
       return { ...state, downloads: [imageToStore, ...state.downloads] };
     }
 
@@ -135,13 +128,13 @@ export const DownloadsProvider = ({ children }) => {
         const serializedState = JSON.stringify({ downloads: downloadsToSave });
         localStorage.setItem(LOCAL_STORAGE_DOWNLOADS_KEY, serializedState);
       } catch (error) {
-        toast.error(
+        showErrorToast(
           `Could not save downloads to your browser: ${error.message}`,
         );
       }
     } else if (typeof state.downloads !== "undefined") {
       showWarningToast(
-        "An attempt to save an invalid downloads collection was prevented. Please report this if it persists.",
+        "An attempt to save an invalid downloads collection was prevented.",
       );
     }
   }, [state.downloads]);

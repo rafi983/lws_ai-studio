@@ -8,6 +8,7 @@ const ImageGrid = ({ images, loading, error, onDownload, onImageClick }) => {
 
   if (
     loading &&
+    images.length > 0 &&
     images.every((img) => img.status === "queued" || img.status === "loading")
   ) {
     return (
@@ -22,6 +23,7 @@ const ImageGrid = ({ images, loading, error, onDownload, onImageClick }) => {
   return (
     <>
       {error && <p className="text-center text-red-400 py-4">{error}</p>}
+
       {showPlaceholder && (
         <div className="flex items-center justify-center text-center h-64 border-2 border-dashed border-zinc-800 rounded-xl">
           <p className="text-zinc-500">
@@ -31,6 +33,7 @@ const ImageGrid = ({ images, loading, error, onDownload, onImageClick }) => {
           </p>
         </div>
       )}
+
       {images.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {images.map((image, index) => {
@@ -41,6 +44,7 @@ const ImageGrid = ({ images, loading, error, onDownload, onImageClick }) => {
             ) {
               return <FailedImageCard key={image.id || `failed-${index}`} />;
             }
+
             return (
               <ImageCard
                 key={image.id || image.permanentUrl || `img-${index}`}
@@ -52,7 +56,7 @@ const ImageGrid = ({ images, loading, error, onDownload, onImageClick }) => {
                     (image.displayUrl || image.permanentUrl) &&
                     onImageClick
                   ) {
-                    onImageClick(index); // Pass the original index from the 'images' array
+                    onImageClick(index); // original index in state.images
                   }
                 }}
               />
