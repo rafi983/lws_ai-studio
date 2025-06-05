@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useFavourites } from "../context/FavouritesContext";
 import { FiClock, FiAlertTriangle } from "react-icons/fi";
 
-export default function ImageCard({ image, onDownload, onClick }) {
+export default function ImageCard({ image, onDownload, onClick, onEdit }) {
   const [hasError, setHasError] = useState(false);
   const { state, dispatch } = useFavourites();
 
@@ -11,10 +11,7 @@ export default function ImageCard({ image, onDownload, onClick }) {
 
   const toggleFav = (e) => {
     e.stopPropagation();
-    if (!imageId) {
-      console.warn("Cannot toggle favourite: image ID is missing", image);
-      return;
-    }
+    if (!imageId) return;
     dispatch({ type: "TOGGLE_FAVOURITE", payload: { ...image, id: imageId } });
   };
 
@@ -37,7 +34,6 @@ export default function ImageCard({ image, onDownload, onClick }) {
     if (image.status === "loading") {
       return (
         <div className="flex flex-col items-center justify-center gap-3 text-zinc-300">
-          {/* Custom Animated Spinner */}
           <div className="relative w-12 h-12">
             <svg
               className="animate-spin w-12 h-12 text-purple-500"
@@ -53,9 +49,7 @@ export default function ImageCard({ image, onDownload, onClick }) {
                 strokeWidth="5"
               />
               <path
-                d="M25 5
-               a20 20 0 0 1 0 40
-               a20 20 0 0 1 0 -40"
+                d="M25 5 a20 20 0 0 1 0 40 a20 20 0 0 1 0 -40"
                 stroke="currentColor"
                 strokeWidth="5"
                 strokeLinecap="round"
@@ -64,9 +58,7 @@ export default function ImageCard({ image, onDownload, onClick }) {
               />
             </svg>
           </div>
-
-          {/* Loading Message */}
-          <p className="text-sm text-center leading-snug text-zinc-400">
+          <p className="text-sm text-center text-zinc-400">
             Generating your masterpiece…
             <br />
             Please wait{" "}
@@ -117,7 +109,12 @@ export default function ImageCard({ image, onDownload, onClick }) {
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3c3.08 0 5.5 2.42 5.5 5.5 0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                  <path
+                    d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
+                    2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81
+                    14.76 3 16.5 3c3.08 0 5.5 2.42 5.5 5.5
+                    0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                  />
                 </svg>
               ) : (
                 <svg
@@ -127,10 +124,16 @@ export default function ImageCard({ image, onDownload, onClick }) {
                   strokeWidth="2"
                   viewBox="0 0 24 24"
                 >
-                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3c3.08 0 5.5 2.42 5.5 5.5 0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                  <path
+                    d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
+                    2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81
+                    14.76 3 16.5 3c3.08 0 5.5 2.42 5.5 5.5
+                    0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                  />
                 </svg>
               )}
             </button>
+
             {onDownload && (
               <button
                 className="p-2 bg-black/50 rounded-full hover:bg-black/80 transition"
@@ -157,20 +160,24 @@ export default function ImageCard({ image, onDownload, onClick }) {
                 </svg>
               </button>
             )}
+
+            {onEdit && (
+              <button
+                className="p-2 bg-black/50 rounded-full hover:bg-black/80 transition"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(image);
+                }}
+                title="Edit"
+              >
+                ✎
+              </button>
+            )}
           </div>
         </>
       );
     }
 
-    if (image.status === "ready" && (!imageUrlToDisplay || hasError)) {
-      if (!hasError) setHasError(true);
-      return (
-        <div className="flex flex-col items-center justify-center gap-2 text-red-400">
-          <FiAlertTriangle className="w-8 h-8" />
-          <p className="text-sm text-center">Image data incomplete.</p>
-        </div>
-      );
-    }
     return null;
   };
 
@@ -178,17 +185,15 @@ export default function ImageCard({ image, onDownload, onClick }) {
     image.status === "ready" && imageUrlToDisplay && !hasError;
 
   return (
-    <>
-      <div
-        className={`relative group rounded-xl overflow-hidden bg-gradient-to-br from-[#0f0f0f] to-[#1a0b2e] w-full h-48 flex items-center justify-center text-center p-4 ${isClickable ? "cursor-pointer" : "cursor-default"}`}
-        onClick={() => {
-          if (isClickable && onClick) {
-            onClick();
-          }
-        }}
-      >
-        {renderContent()}
-      </div>
-    </>
+    <div
+      className={`relative group rounded-xl overflow-hidden bg-gradient-to-br from-[#0f0f0f] to-[#1a0b2e] w-full h-48 flex items-center justify-center text-center p-4 ${isClickable ? "cursor-pointer" : "cursor-default"}`}
+      onClick={() => {
+        if (isClickable && onClick) {
+          onClick();
+        }
+      }}
+    >
+      {renderContent()}
+    </div>
   );
 }

@@ -3,7 +3,14 @@ import ImageCard from "./ImageCard";
 import ImageSkeleton from "./ImageSkeleton";
 import FailedImageCard from "./FailedImageCard";
 
-const ImageGrid = ({ images, loading, error, onDownload, onImageClick }) => {
+const ImageGrid = ({
+  images,
+  loading,
+  error,
+  onDownload,
+  onImageClick,
+  onEdit,
+}) => {
   const showPlaceholder = !loading && images.length === 0 && !error;
 
   if (
@@ -59,6 +66,7 @@ const ImageGrid = ({ images, loading, error, onDownload, onImageClick }) => {
                     onImageClick(index); // original index in state.images
                   }
                 }}
+                onEdit={onEdit}
               />
             );
           })}

@@ -98,6 +98,7 @@ export const ImageGenerationProvider = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const blobUrlsRef = useRef([]);
 
+  // ✅ LOAD FROM STORAGE
   useEffect(() => {
     try {
       const savedData = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY));
@@ -108,6 +109,7 @@ export const ImageGenerationProvider = ({ children }) => {
       if (savedData && savedData.prompt && Array.isArray(savedData.images)) {
         dispatch({ type: ActionTypes.LOAD_SAVED, payload: savedData });
       }
+
       if (savedHistory && Array.isArray(savedHistory)) {
         dispatch({ type: ActionTypes.SET_HISTORY, payload: savedHistory });
       }
@@ -116,11 +118,16 @@ export const ImageGenerationProvider = ({ children }) => {
     }
   }, []);
 
+  // ✅ SAVE FULL IMAGES (NO FILTERING)
   useEffect(() => {
     if (state.images.length > 0) {
       const dataToSave = {
         prompt: state.prompt,
         model: state.model,
+        width: state.width,
+        height: state.height,
+        seed: state.seed,
+        noLogo: state.noLogo,
         images: state.images,
       };
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));

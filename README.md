@@ -54,6 +54,36 @@ This application provides a complete workflow for AI image generation and manage
 - A row of mini thumbnails appears beneath the main image in the modal. Clicking any thumbnail immediately displays that image in full preview.
 
 
+### 🖌️ Canvas Editor Modal
+
+The **Canvas Editor** is a full-featured, in-browser image editor built into the AI image generation app. It allows users to annotate, draw, and enhance generated images directly in the app — no external tools needed.
+
+**Features:**
+
+- **Freehand Drawing**  
+  Draw on the image using a customizable brush with color and stroke width controls.
+
+- **Text Annotations**  
+  Click anywhere on the canvas to place user-input text with adjustable size and color.
+
+- **Emoji Stickers**  
+  Choose from a set of popular emojis to drag-and-drop playful elements onto the image.
+
+- **Undo/Redo History**  
+  Every drawing action is recorded and can be reversed or re-applied using undo/redo buttons.
+
+- **Clear Canvas**  
+  Revert the canvas back to the original image with a single click.
+
+- **Image Download**  
+  Save the edited image as a `.png` file using the built-in download button.
+
+## 🖼️ How It Works
+
+- When the user clicks the **Edit** button on any generated image, the `CanvasEditorModal` opens.
+- The editor loads the image onto a `<canvas>` element at full resolution.
+- All drawing and editing actions are rendered directly onto the canvas.
+- The final result can be downloaded, but is not yet saved in app state or local history.
 
 ### ⚙️ Advanced Generation Controls
 - **Model Selection:** Choose from dynamically fetched AI models.

@@ -4,6 +4,7 @@ import AdvancedSettings from "../components/AdvancedSettings";
 import ImageGrid from "../components/ImageGrid";
 import PromptHistory from "../components/PromptHistory";
 import ImageModal from "../components/ImageModal";
+import CanvasEditorModal from "../components/CanvasEditorModal"; // ✅ NEW
 import { useImageGeneration } from "../context/ImageGenerationContext";
 import { useDownloads } from "../context/DownloadsContext";
 import { fetchAvailableModels } from "../api/pollinationsAPI";
@@ -28,6 +29,8 @@ const CreateImagePage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentModalImageIndex, setCurrentModalImageIndex] = useState(0);
   const [modalImages, setModalImages] = useState([]);
+
+  const [editorImage, setEditorImage] = useState(null); // ✅ NEW
 
   useEffect(() => {
     const readyImages = state.images.filter(
@@ -300,6 +303,7 @@ const CreateImagePage = () => {
         error={state.error}
         onDownload={handleDownload}
         onImageClick={openModalWithImage}
+        onEdit={(img) => setEditorImage(img)} // ✅ canvas editor hook
       />
 
       <ImageModal
@@ -311,6 +315,13 @@ const CreateImagePage = () => {
         onNext={goToNextImage}
         onSelect={(index) => setCurrentModalImageIndex(index)}
       />
+
+      {editorImage && (
+        <CanvasEditorModal
+          image={editorImage}
+          onClose={() => setEditorImage(null)}
+        />
+      )}
     </div>
   );
 };
