@@ -78,7 +78,7 @@ The **Canvas Editor** is a full-featured, in-browser image editor built into the
 - **Image Download**  
   Save the edited image as a `.png` file using the built-in download button.
 
-## 🖼️ How It Works
+## 🧪 How It Works
 
 - When the user clicks the **Edit** button on any generated image, the `CanvasEditorModal` opens.
 - The editor loads the image onto a `<canvas>` element at full resolution.
