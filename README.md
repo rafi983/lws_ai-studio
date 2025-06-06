@@ -78,12 +78,26 @@ The **Canvas Editor** is a full-featured, in-browser image editor built into the
 - **Image Download**  
   Save the edited image as a `.png` file using the built-in download button.
 
-## 🖼️ How It Works
+## 💡How It Works
 
 - When the user clicks the **Edit** button on any generated image, the `CanvasEditorModal` opens.
 - The editor loads the image onto a `<canvas>` element at full resolution.
 - All drawing and editing actions are rendered directly onto the canvas.
 - The final result can be downloaded, but is not yet saved in app state or local history.
+
+
+### 🔎 Image Comparison Feature
+
+This feature allows users to select two generated images and compare them side-by-side in a responsive modal view. It enhances the user experience by making it easy to visually analyze differences between AI-generated images.
+
+## 💡How It Works
+
+- ✅ **Selection**: Users select images for comparison using a bold checkmark button (`BsCheckCircleFill` from `react-icons`) on each image card.
+- 🔢 **Selection Limit**: Only two images can be selected at a time. Selecting more triggers a toast notification 🔔 informing the user.
+- 🔘 **Comparison Button**: Once two images are selected, a floating **Compare Selected (2)** button appears at the bottom-right corner.
+- 🖼️ **Comparison Modal**: Clicking the button opens a modal displaying the two images side-by-side with detailed metadata (prompt, model, seed, size).
+- ❌ **Close Modal**: Clicking outside the modal or on the close (✖️) button closes the comparison view.
+- ⚡ **UI/UX Enhancements**: Utilizes `react-icons` for clear visual feedback and `toastUtils` for real-time notifications.
 
 ### ⚙️ Advanced Generation Controls
 - **Model Selection:** Choose from dynamically fetched AI models.

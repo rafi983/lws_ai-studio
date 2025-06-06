@@ -10,6 +10,8 @@ const ImageGrid = ({
   onDownload,
   onImageClick,
   onEdit,
+  onSelectCompare,
+  comparisonImages = [],
 }) => {
   const showPlaceholder = !loading && images.length === 0 && !error;
 
@@ -52,10 +54,13 @@ const ImageGrid = ({
               return <FailedImageCard key={image.id || `failed-${index}`} />;
             }
 
+            const isSelected = comparisonImages.some((i) => i.id === image.id);
+
             return (
               <ImageCard
                 key={image.id || image.permanentUrl || `img-${index}`}
                 image={image}
+                isSelected={isSelected}
                 onDownload={onDownload}
                 onClick={() => {
                   if (
@@ -63,10 +68,11 @@ const ImageGrid = ({
                     (image.displayUrl || image.permanentUrl) &&
                     onImageClick
                   ) {
-                    onImageClick(index); // original index in state.images
+                    onImageClick(index);
                   }
                 }}
                 onEdit={onEdit}
+                onSelectCompare={onSelectCompare}
               />
             );
           })}

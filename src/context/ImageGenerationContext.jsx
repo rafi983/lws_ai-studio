@@ -98,27 +98,66 @@ export const ImageGenerationProvider = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const blobUrlsRef = useRef([]);
 
-  // ✅ LOAD FROM STORAGE
+  // Revoke blob URLs to avoid memory leaks
   useEffect(() => {
-    try {
-      const savedData = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY));
-      const savedHistory = JSON.parse(
-        localStorage.getItem(LOCAL_STORAGE_HISTORY_KEY),
-      );
-
-      if (savedData && savedData.prompt && Array.isArray(savedData.images)) {
-        dispatch({ type: ActionTypes.LOAD_SAVED, payload: savedData });
-      }
-
-      if (savedHistory && Array.isArray(savedHistory)) {
-        dispatch({ type: ActionTypes.SET_HISTORY, payload: savedHistory });
-      }
-    } catch (err) {
-      showErrorToast("Failed to load saved image data.");
-    }
+    return () => {
+      blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      blobUrlsRef.current = [];
+    };
   }, []);
 
-  // ✅ SAVE FULL IMAGES (NO FILTERING)
+  // Load saved data & images from localStorage, then fetch blobs for images
+  useEffect(() => {
+    const loadSavedImages = async () => {
+      try {
+        const savedData = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY));
+        const savedHistory = JSON.parse(
+          localStorage.getItem(LOCAL_STORAGE_HISTORY_KEY),
+        );
+
+        if (savedData && savedData.images && Array.isArray(savedData.images)) {
+          // Clear displayUrl (blob URLs) before setting images
+          const imagesWithoutDisplayUrl = savedData.images.map((img) => ({
+            ...img,
+            displayUrl: null,
+          }));
+
+          dispatch({
+            type: ActionTypes.SET_IMAGES,
+            payload: imagesWithoutDisplayUrl,
+          });
+
+          // Fetch blobs for each image and update displayUrl dynamically
+          for (let i = 0; i < savedData.images.length; i++) {
+            const img = savedData.images[i];
+            try {
+              const res = await fetch(img.permanentUrl);
+              if (!res.ok) continue;
+              const blob = await res.blob();
+              const blobUrl = URL.createObjectURL(blob);
+              blobUrlsRef.current.push(blobUrl);
+              dispatch({
+                type: ActionTypes.SET_IMAGE,
+                index: i,
+                payload: { ...img, displayUrl: blobUrl },
+              });
+            } catch {
+              // Ignore fetch errors here
+            }
+          }
+        }
+
+        if (savedHistory && Array.isArray(savedHistory)) {
+          dispatch({ type: ActionTypes.SET_HISTORY, payload: savedHistory });
+        }
+      } catch (err) {
+        showErrorToast("Failed to load saved image data.");
+      }
+    };
+    loadSavedImages();
+  }, []);
+
+  // Save images to localStorage WITHOUT blob URLs (displayUrl)
   useEffect(() => {
     if (state.images.length > 0) {
       const dataToSave = {
@@ -128,11 +167,19 @@ export const ImageGenerationProvider = ({ children }) => {
         height: state.height,
         seed: state.seed,
         noLogo: state.noLogo,
-        images: state.images,
+        images: state.images.map(({ displayUrl, ...rest }) => rest), // strip displayUrl
       };
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
     }
-  }, [state.prompt, state.images, state.model]);
+  }, [
+    state.prompt,
+    state.images,
+    state.model,
+    state.width,
+    state.height,
+    state.seed,
+    state.noLogo,
+  ]);
 
   useEffect(() => {
     if (state.promptHistory.length > 0) {
@@ -193,6 +240,7 @@ export const ImageGenerationProvider = ({ children }) => {
           };
 
           if (!firstImageUrl) firstImageUrl = apiResponse.displayUrl;
+          blobUrlsRef.current.push(apiResponse.displayUrl);
         } else {
           imageResult = { status: "error" };
           showWarningToast("One of the images could not be generated.");

@@ -4,7 +4,8 @@ import AdvancedSettings from "../components/AdvancedSettings";
 import ImageGrid from "../components/ImageGrid";
 import PromptHistory from "../components/PromptHistory";
 import ImageModal from "../components/ImageModal";
-import CanvasEditorModal from "../components/CanvasEditorModal"; // ✅ NEW
+import CanvasEditorModal from "../components/CanvasEditorModal";
+import ImageCompareModal from "../components/ImageCompareModal";
 import { useImageGeneration } from "../context/ImageGenerationContext";
 import { useDownloads } from "../context/DownloadsContext";
 import { fetchAvailableModels } from "../api/pollinationsAPI";
@@ -30,7 +31,9 @@ const CreateImagePage = () => {
   const [currentModalImageIndex, setCurrentModalImageIndex] = useState(0);
   const [modalImages, setModalImages] = useState([]);
 
-  const [editorImage, setEditorImage] = useState(null); // ✅ NEW
+  const [editorImage, setEditorImage] = useState(null);
+  const [comparisonImages, setComparisonImages] = useState([]);
+  const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
 
   useEffect(() => {
     const readyImages = state.images.filter(
@@ -84,6 +87,23 @@ const CreateImagePage = () => {
     fetchJsonData("/generated-prompts.json", setAIPrompts, "AI prompts");
   }, []);
 
+  const handleSelectCompare = (img, selected) => {
+    setComparisonImages((prev) => {
+      if (selected) {
+        if (prev.length >= 2) {
+          showWarningToast(
+            "You can only select up to 2 images for comparison.",
+          );
+          return prev;
+        }
+        if (prev.find((i) => i.id === img.id)) return prev;
+        return [...prev, img];
+      } else {
+        return prev.filter((i) => i.id !== img.id);
+      }
+    });
+  };
+
   const handlePromptChange = (e) => {
     const value = e.target.value;
     dispatch({ type: "SET_PROMPT", payload: value });
@@ -113,7 +133,9 @@ const CreateImagePage = () => {
     setUsed((prev) => [...prev, random]);
     dispatch({ type: "SET_PROMPT", payload: random });
     showSuccessToast(
-      `${type === "Templates" ? "Template" : "AI Prompt"} inserted: ${random.substring(0, 30)}...`,
+      `${
+        type === "Templates" ? "Template" : "AI Prompt"
+      } inserted: ${random.substring(0, 30)}...`,
     );
   };
 
@@ -224,39 +246,6 @@ const CreateImagePage = () => {
         Let's create a masterpiece, Alvian!{" "}
         <span className="text-2xl animate-wave inline-block">👋</span>
       </h2>
-      <style jsx global>{`
-        @keyframes wave-animation {
-          0% {
-            transform: rotate(0deg);
-          }
-          10% {
-            transform: rotate(14deg);
-          }
-          20% {
-            transform: rotate(-8deg);
-          }
-          30% {
-            transform: rotate(14deg);
-          }
-          40% {
-            transform: rotate(-4deg);
-          }
-          50% {
-            transform: rotate(10deg);
-          }
-          60% {
-            transform: rotate(0deg);
-          }
-          100% {
-            transform: rotate(0deg);
-          }
-        }
-        .animate-wave {
-          display: inline-block;
-          animation: wave-animation 2.5s infinite;
-          transform-origin: 70% 70%;
-        }
-      `}</style>
 
       <PromptHistory
         history={state.promptHistory}
@@ -303,7 +292,9 @@ const CreateImagePage = () => {
         error={state.error}
         onDownload={handleDownload}
         onImageClick={openModalWithImage}
-        onEdit={(img) => setEditorImage(img)} // ✅ canvas editor hook
+        onEdit={(img) => setEditorImage(img)}
+        onSelectCompare={handleSelectCompare}
+        comparisonImages={comparisonImages}
       />
 
       <ImageModal
@@ -321,6 +312,25 @@ const CreateImagePage = () => {
           image={editorImage}
           onClose={() => setEditorImage(null)}
         />
+      )}
+
+      {isCompareModalOpen && comparisonImages.length === 2 && (
+        <ImageCompareModal
+          images={comparisonImages}
+          onClose={() => {
+            setComparisonImages([]);
+            setIsCompareModalOpen(false);
+          }}
+        />
+      )}
+
+      {comparisonImages.length === 2 && !isCompareModalOpen && (
+        <button
+          className="fixed bottom-6 right-6 bg-purple-600 text-white px-4 py-2 rounded-full shadow-lg hover:bg-purple-500 transition z-50"
+          onClick={() => setIsCompareModalOpen(true)}
+        >
+          Compare Selected (2)
+        </button>
       )}
     </div>
   );
