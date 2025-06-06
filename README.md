@@ -186,5 +186,3 @@ The project follows a standard React application structure, organized for scalab
 - The **`gptimg` model** requires a special "upgraded" seed to function properly. Acceptable seed values include keywords like `"flower"` or `"nectar"`. Using a regular numeric seed may result in errors or no image generation.
 - The application will prompt the user if an invalid seed is used with the `gptimg` model.
 - For more details, refer to the [Pollinations API documentation](https://pollinations.ai/).
-
-hola
