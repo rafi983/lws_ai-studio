@@ -210,6 +210,7 @@ export default function ImageCard({
       {onSelectCompare && image.status === "ready" && (
         <button
           type="button"
+          data-image-id={image.id} // ✅ Needed for auto-uncheck
           onClick={(e) => {
             e.stopPropagation();
             onSelectCompare(image, !isSelected);

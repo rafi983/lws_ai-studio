@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import CustomSelect from "./CustomSelect";
 
 const AdvancedSettings = ({
@@ -19,6 +19,22 @@ const AdvancedSettings = ({
     "16:9": { width: 1920, height: 1080 },
     "4:3": { width: 1440, height: 1080 },
     "3:2": { width: 1620, height: 1080 },
+  };
+
+  useEffect(() => {
+    const stored = localStorage.getItem("selected-aspect-ratio");
+    if (stored) {
+      const { width: w, height: h } = JSON.parse(stored);
+      setDimensions(w, h);
+    }
+  }, [setDimensions]);
+
+  const handlePresetClick = (val) => {
+    setDimensions(val.width, val.height);
+    localStorage.setItem(
+      "selected-aspect-ratio",
+      JSON.stringify({ width: val.width, height: val.height }),
+    );
   };
 
   return (
@@ -75,15 +91,22 @@ const AdvancedSettings = ({
             Aspect Ratio Presets
           </label>
           <div className="flex flex-wrap gap-2">
-            {Object.entries(ratioPresets).map(([label, val]) => (
-              <button
-                key={label}
-                onClick={() => setDimensions(val.width, val.height)}
-                className="bg-zinc-900/10 px-3 py-2 text-xs hover:bg-zinc-800 rounded transition-colors"
-              >
-                {label}
-              </button>
-            ))}
+            {Object.entries(ratioPresets).map(([label, val]) => {
+              const isActive = width === val.width && height === val.height;
+              return (
+                <button
+                  key={label}
+                  onClick={() => handlePresetClick(val)}
+                  className={`px-3 py-2 text-xs rounded transition-colors border font-medium ${
+                    isActive
+                      ? "bg-purple-600 text-white border-purple-600"
+                      : "bg-zinc-900/10 text-zinc-300 border-zinc-700 hover:bg-zinc-800"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
         </div>
 

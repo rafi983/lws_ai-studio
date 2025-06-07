@@ -64,8 +64,9 @@ const CreateImagePage = () => {
         setAvailableModels([
           { value: "playground-v2.5", label: "Playground V2.5 (Fallback)" },
         ]);
-        if (state.model !== "playground-v2.5")
+        if (state.model !== "playground-v2.5") {
           dispatch({ type: "SET_MODEL", payload: "playground-v2.5" });
+        }
       } finally {
         setModelsLoading(false);
       }
@@ -96,6 +97,23 @@ const CreateImagePage = () => {
           );
           return prev;
         }
+
+        const hasSameSeed = prev.some((i) => i.seed === img.seed);
+        if (hasSameSeed) {
+          showWarningToast(
+            `Comparison disabled: Both images have the same seed (${img.seed}).`,
+          );
+
+          setTimeout(() => {
+            const button = document.querySelector(
+              `button[data-image-id="${img.id}"]`,
+            );
+            if (button) button.classList.remove("bg-purple-600", "text-white");
+          }, 0);
+
+          return prev;
+        }
+
         if (prev.find((i) => i.id === img.id)) return prev;
         return [...prev, img];
       } else {

@@ -7,7 +7,7 @@ const ImageModal = ({
   currentIndex,
   onPrev,
   onNext,
-  onSelect, // ✅ new prop
+  onSelect,
 }) => {
   if (
     !isOpen ||
@@ -37,6 +37,13 @@ const ImageModal = ({
     if (e.target === e.currentTarget) {
       onClose();
     }
+  };
+
+  const shouldHideThumbnails = () => {
+    if (!image?.seed) return false;
+    return images.some(
+      (img, idx) => idx !== currentIndex && img.seed === image.seed,
+    );
   };
 
   return (
@@ -79,7 +86,7 @@ const ImageModal = ({
           />
 
           {/* Arrows */}
-          {images.length > 1 && (
+          {images.length > 1 && !shouldHideThumbnails() && (
             <>
               <button
                 onClick={onPrev}
@@ -124,14 +131,14 @@ const ImageModal = ({
         </div>
 
         {/* Thumbnails */}
-        {images.length > 1 && (
+        {images.length > 1 && !shouldHideThumbnails() && (
           <div className="flex overflow-x-auto gap-2 mb-3 px-1">
             {images.map((img, idx) => (
               <img
                 key={img.permanentUrl || idx}
                 src={img.displayUrl || img.permanentUrl || img.imageUrl}
                 alt={`Thumbnail ${idx + 1}`}
-                onClick={() => idx !== currentIndex && onSelect(idx)} // ✅ fixed
+                onClick={() => idx !== currentIndex && onSelect(idx)}
                 className={`w-12 h-12 object-cover rounded cursor-pointer border-2 ${
                   idx === currentIndex
                     ? "border-purple-500"
@@ -170,9 +177,12 @@ const ImageModal = ({
           </div>
         </div>
 
+        {/* Footer Info */}
         {images.length > 1 && (
           <div className="text-center mt-3 text-zinc-400 text-xs">
-            Image {currentIndex + 1} of {images.length}
+            {shouldHideThumbnails()
+              ? "Navigation disabled: duplicate seed detected"
+              : `Image ${currentIndex + 1} of ${images.length}`}
           </div>
         )}
       </div>
