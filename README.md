@@ -54,7 +54,7 @@ This application provides a complete workflow for AI image generation and manage
 - A row of mini thumbnails appears beneath the main image in the modal. Clicking any thumbnail immediately displays that image in full preview.
 
 
-### 🖌️ Canvas Editor Modal
+### 🖌️ Canvas Editor
 
 The **Canvas Editor** is a full-featured, in-browser image editor built into the AI image generation app. It allows users to annotate, draw, and enhance generated images directly in the app — no external tools needed.
 
@@ -85,7 +85,7 @@ The **Canvas Editor** is a full-featured, in-browser image editor built into the
 - All drawing and editing actions are rendered directly onto the canvas.
 - The final result can be downloaded, but is not yet saved in app state or local history.
 
-### 🔎 Image Comparison Feature
+### 🔎 Image Comparison
 
 This feature allows users to select two generated images and compare them side-by-side in a responsive modal view. It enhances the user experience by making it easy to visually analyze differences between AI-generated images.
 
