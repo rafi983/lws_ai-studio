@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import CustomSelect from "./CustomSelect";
 
 const AdvancedSettings = ({
@@ -21,20 +21,8 @@ const AdvancedSettings = ({
     "3:2": { width: 1620, height: 1080 },
   };
 
-  useEffect(() => {
-    const stored = localStorage.getItem("selected-aspect-ratio");
-    if (stored) {
-      const { width: w, height: h } = JSON.parse(stored);
-      setDimensions(w, h);
-    }
-  }, [setDimensions]);
-
   const handlePresetClick = (val) => {
     setDimensions(val.width, val.height);
-    localStorage.setItem(
-      "selected-aspect-ratio",
-      JSON.stringify({ width: val.width, height: val.height }),
-    );
   };
 
   return (

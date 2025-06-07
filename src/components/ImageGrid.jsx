@@ -18,7 +18,10 @@ const ImageGrid = ({
   if (
     loading &&
     images.length > 0 &&
-    images.every((img) => img.status === "queued" || img.status === "loading")
+    // FIX: Add a guard to ensure 'img' exists before accessing its properties.
+    images.every(
+      (img) => img && (img.status === "queued" || img.status === "loading"),
+    )
   ) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -46,6 +49,10 @@ const ImageGrid = ({
       {images.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {images.map((image, index) => {
+            if (!image) {
+              return null;
+            }
+
             if (
               image.status === "error" &&
               !image.displayUrl &&

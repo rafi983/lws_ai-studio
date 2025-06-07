@@ -37,12 +37,17 @@ const CreateImagePage = () => {
 
   useEffect(() => {
     const readyImages = state.images.filter(
-      (img) => img.status === "ready" && (img.displayUrl || img.permanentUrl),
+      (img) =>
+        img && img.status === "ready" && (img.displayUrl || img.permanentUrl),
     );
     setModalImages(readyImages);
   }, [state.images]);
 
   useEffect(() => {
+    if (!state.settingsLoaded) {
+      return;
+    }
+
     (async () => {
       setModelsLoading(true);
       try {
@@ -71,7 +76,7 @@ const CreateImagePage = () => {
         setModelsLoading(false);
       }
     })();
-  }, [dispatch, state.model]);
+  }, [dispatch, state.model, state.settingsLoaded]);
 
   useEffect(() => {
     const fetchJsonData = async (url, setData, name) => {
@@ -100,7 +105,6 @@ const CreateImagePage = () => {
         showWarningToast(
           `Comparison disabled: Both images have the same seed (${img.seed}).`,
         );
-        // ✅ Clear both images from selection
         setComparisonImages([]);
         return;
       }
@@ -220,8 +224,9 @@ const CreateImagePage = () => {
     const clickedImage = state.images[originalImageIndex];
     const indexInModalImages = modalImages.findIndex(
       (img) =>
-        (img.id && img.id === clickedImage.id) ||
-        img.permanentUrl === clickedImage.permanentUrl,
+        img &&
+        ((img.id && img.id === clickedImage.id) ||
+          img.permanentUrl === clickedImage.permanentUrl),
     );
     if (indexInModalImages !== -1) {
       setCurrentModalImageIndex(indexInModalImages);
@@ -267,7 +272,8 @@ const CreateImagePage = () => {
         loading={
           state.loading &&
           state.images.some(
-            (img) => img.status === "loading" || img.status === "queued",
+            (img) =>
+              img && (img.status === "loading" || img.status === "queued"),
           )
         }
         modelsLoading={modelsLoading}
@@ -294,7 +300,8 @@ const CreateImagePage = () => {
       <ImageGrid
         images={state.images}
         loading={
-          state.loading && state.images.every((img) => img.status === "queued")
+          state.loading &&
+          state.images.every((img) => img && img.status === "queued")
         }
         error={state.error}
         onDownload={handleDownload}

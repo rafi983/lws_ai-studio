@@ -25,13 +25,15 @@ const ActionTypes = {
   SET_ERROR: "SET_ERROR",
   SET_HISTORY: "SET_HISTORY",
   ADD_TO_HISTORY: "ADD_TO_HISTORY",
-  LOAD_SAVED: "LOAD_SAVED",
+  LOAD_SAVED_SETTINGS: "LOAD_SAVED_SETTINGS",
+  SETTINGS_LOADED: "SETTINGS_LOADED",
 };
 
 const ImageGenerationContext = createContext();
 
 const NUM_IMAGES_TO_GENERATE = 9;
-const LOCAL_STORAGE_KEY = "lws-ai-generated-data";
+const LOCAL_STORAGE_SETTINGS_KEY = "lws-ai-settings";
+const LOCAL_STORAGE_IMAGES_KEY = "lws-ai-generated-data";
 const LOCAL_STORAGE_HISTORY_KEY = "lws-ai-prompt-history";
 
 const initialState = {
@@ -45,6 +47,7 @@ const initialState = {
   noLogo: true,
   loading: false,
   error: null,
+  settingsLoaded: false,
 };
 
 const reducer = (state, action) => {
@@ -87,8 +90,10 @@ const reducer = (state, action) => {
       ].slice(0, 20);
       return { ...state, promptHistory: updatedHistory };
     }
-    case ActionTypes.LOAD_SAVED:
-      return { ...state, ...action.payload, loading: false, error: null };
+    case ActionTypes.LOAD_SAVED_SETTINGS:
+      return { ...state, ...action.payload, settingsLoaded: true };
+    case ActionTypes.SETTINGS_LOADED:
+      return { ...state, settingsLoaded: true };
     default:
       return state;
   }
@@ -98,7 +103,6 @@ export const ImageGenerationProvider = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const blobUrlsRef = useRef([]);
 
-  // Revoke blob URLs to avoid memory leaks
   useEffect(() => {
     return () => {
       blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
@@ -106,18 +110,37 @@ export const ImageGenerationProvider = ({ children }) => {
     };
   }, []);
 
-  // Load saved data & images from localStorage, then fetch blobs for images
   useEffect(() => {
-    const loadSavedImages = async () => {
-      try {
-        const savedData = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY));
-        const savedHistory = JSON.parse(
-          localStorage.getItem(LOCAL_STORAGE_HISTORY_KEY),
-        );
+    try {
+      const savedSettings = JSON.parse(
+        localStorage.getItem(LOCAL_STORAGE_SETTINGS_KEY),
+      );
+      if (savedSettings) {
+        dispatch({
+          type: ActionTypes.LOAD_SAVED_SETTINGS,
+          payload: savedSettings,
+        });
+      } else {
+        dispatch({ type: ActionTypes.SETTINGS_LOADED });
+      }
+    } catch (err) {
+      showErrorToast("Failed to load saved settings.");
+      dispatch({ type: ActionTypes.SETTINGS_LOADED });
+    }
+  }, []);
 
-        if (savedData && savedData.images && Array.isArray(savedData.images)) {
-          // Clear displayUrl (blob URLs) before setting images
-          const imagesWithoutDisplayUrl = savedData.images.map((img) => ({
+  useEffect(() => {
+    const loadSavedData = async () => {
+      try {
+        const savedImageData = JSON.parse(
+          localStorage.getItem(LOCAL_STORAGE_IMAGES_KEY),
+        );
+        if (
+          savedImageData &&
+          savedImageData.images &&
+          Array.isArray(savedImageData.images)
+        ) {
+          const imagesWithoutDisplayUrl = savedImageData.images.map((img) => ({
             ...img,
             displayUrl: null,
           }));
@@ -127,9 +150,9 @@ export const ImageGenerationProvider = ({ children }) => {
             payload: imagesWithoutDisplayUrl,
           });
 
-          // Fetch blobs for each image and update displayUrl dynamically
-          for (let i = 0; i < savedData.images.length; i++) {
-            const img = savedData.images[i];
+          for (let i = 0; i < savedImageData.images.length; i++) {
+            const img = savedImageData.images[i];
+            if (!img.permanentUrl) continue;
             try {
               const res = await fetch(img.permanentUrl);
               if (!res.ok) continue;
@@ -142,44 +165,64 @@ export const ImageGenerationProvider = ({ children }) => {
                 payload: { ...img, displayUrl: blobUrl },
               });
             } catch {
-              // Ignore fetch errors here
+              // Gracefully ignore fetch errors for individual images
             }
           }
-        }
-
-        if (savedHistory && Array.isArray(savedHistory)) {
-          dispatch({ type: ActionTypes.SET_HISTORY, payload: savedHistory });
         }
       } catch (err) {
         showErrorToast("Failed to load saved image data.");
       }
+
+      try {
+        const savedHistory = JSON.parse(
+          localStorage.getItem(LOCAL_STORAGE_HISTORY_KEY),
+        );
+        if (savedHistory && Array.isArray(savedHistory)) {
+          dispatch({ type: ActionTypes.SET_HISTORY, payload: savedHistory });
+        }
+      } catch (err) {
+        showErrorToast("Failed to load prompt history.");
+      }
     };
-    loadSavedImages();
+    loadSavedData();
   }, []);
 
-  // Save images to localStorage WITHOUT blob URLs (displayUrl)
   useEffect(() => {
-    if (state.images.length > 0) {
-      const dataToSave = {
-        prompt: state.prompt,
-        model: state.model,
-        width: state.width,
-        height: state.height,
-        seed: state.seed,
-        noLogo: state.noLogo,
-        images: state.images.map(({ displayUrl, ...rest }) => rest), // strip displayUrl
-      };
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
+    if (!state.settingsLoaded) {
+      return;
     }
+    const settingsToSave = {
+      model: state.model,
+      width: state.width,
+      height: state.height,
+      seed: state.seed,
+      noLogo: state.noLogo,
+    };
+    localStorage.setItem(
+      LOCAL_STORAGE_SETTINGS_KEY,
+      JSON.stringify(settingsToSave),
+    );
   }, [
-    state.prompt,
-    state.images,
     state.model,
     state.width,
     state.height,
     state.seed,
     state.noLogo,
+    state.settingsLoaded,
   ]);
+
+  useEffect(() => {
+    if (state.images.length > 0) {
+      const dataToSave = {
+        prompt: state.prompt,
+        images: state.images.map(({ displayUrl, ...rest }) => rest),
+      };
+      localStorage.setItem(
+        LOCAL_STORAGE_IMAGES_KEY,
+        JSON.stringify(dataToSave),
+      );
+    }
+  }, [state.prompt, state.images]);
 
   useEffect(() => {
     if (state.promptHistory.length > 0) {
