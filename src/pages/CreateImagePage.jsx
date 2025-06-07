@@ -89,37 +89,26 @@ const CreateImagePage = () => {
   }, []);
 
   const handleSelectCompare = (img, selected) => {
-    setComparisonImages((prev) => {
-      if (selected) {
-        if (prev.length >= 2) {
-          showWarningToast(
-            "You can only select up to 2 images for comparison.",
-          );
-          return prev;
-        }
-
-        const hasSameSeed = prev.some((i) => i.seed === img.seed);
-        if (hasSameSeed) {
-          showWarningToast(
-            `Comparison disabled: Both images have the same seed (${img.seed}).`,
-          );
-
-          setTimeout(() => {
-            const button = document.querySelector(
-              `button[data-image-id="${img.id}"]`,
-            );
-            if (button) button.classList.remove("bg-purple-600", "text-white");
-          }, 0);
-
-          return prev;
-        }
-
-        if (prev.find((i) => i.id === img.id)) return prev;
-        return [...prev, img];
-      } else {
-        return prev.filter((i) => i.id !== img.id);
+    if (selected) {
+      if (comparisonImages.length >= 2) {
+        showWarningToast("You can only select up to 2 images for comparison.");
+        return;
       }
-    });
+
+      const hasSameSeed = comparisonImages.some((i) => i.seed === img.seed);
+      if (hasSameSeed) {
+        showWarningToast(
+          `Comparison disabled: Both images have the same seed (${img.seed}).`,
+        );
+        // ✅ Clear both images from selection
+        setComparisonImages([]);
+        return;
+      }
+
+      setComparisonImages((prev) => [...prev, img]);
+    } else {
+      setComparisonImages((prev) => prev.filter((i) => i.id !== img.id));
+    }
   };
 
   const handlePromptChange = (e) => {
