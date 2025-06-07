@@ -26,7 +26,7 @@ const ImageCompareModal = ({ images, onClose }) => {
       onClick={onClose}
     >
       <div
-        className="bg-zinc-900 rounded-lg shadow-lg max-w-5xl w-full max-h-[90vh] overflow-auto p-4 relative flex flex-col md:flex-row gap-4"
+        className="bg-zinc-900 rounded-lg shadow-lg w-full max-w-6xl max-h-[95vh] overflow-auto p-4 relative flex flex-col md:flex-row gap-4"
         onClick={(e) => e.stopPropagation()}
       >
         <button
