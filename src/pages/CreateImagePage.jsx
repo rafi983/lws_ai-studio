@@ -259,13 +259,20 @@ const CreateImagePage = () => {
       window.scrollTo({ top: 0, behavior: "smooth" });
 
       setTimeout(() => {
-        generateImages();
+        generateImages(); // This will now default to iterate: true
       }, 100);
 
       showSuccessToast("Remixing new images based on your selection!");
     },
     [dispatch, generateImages],
   );
+
+  const handlePrimaryGenerate = () => {
+    // If a seed exists in the state, tell generateImages NOT to iterate.
+    // Otherwise, let it iterate as normal.
+    const iterate = !state.seed;
+    generateImages({ iterate });
+  };
 
   const closeModal = () => setIsModalOpen(false);
 
@@ -299,7 +306,7 @@ const CreateImagePage = () => {
       <PromptInput
         prompt={state.prompt}
         onChange={handlePromptChange}
-        onGenerate={generateImages}
+        onGenerate={handlePrimaryGenerate}
         loading={
           state.loading &&
           state.images.some(

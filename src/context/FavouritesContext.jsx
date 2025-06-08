@@ -31,15 +31,27 @@ const reducer = (state, action) => {
       const newFavourites = { ...state.favourites };
       const imageId = String(image.id);
 
-      if (newFavourites[imageId]) {
-        delete newFavourites[imageId];
+      const existingFav = Object.values(newFavourites).find(
+        (fav) => fav.seed && fav.seed === image.seed,
+      );
+
+      if (existingFav) {
+        delete newFavourites[existingFav.id];
         showSuccessToast(
-          `${image.prompt ? "'" + image.prompt.substring(0, 20) + "...'" : "Image"} removed from favourites!`,
+          `${
+            image.prompt
+              ? "'" + image.prompt.substring(0, 20) + "...'"
+              : "Image"
+          } removed from favourites!`,
         );
       } else {
         newFavourites[imageId] = image;
         showSuccessToast(
-          `${image.prompt ? "'" + image.prompt.substring(0, 20) + "...'" : "Image"} added to favourites!`,
+          `${
+            image.prompt
+              ? "'" + image.prompt.substring(0, 20) + "...'"
+              : "Image"
+          } added to favourites!`,
         );
       }
 

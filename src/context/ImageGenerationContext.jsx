@@ -235,86 +235,95 @@ export const ImageGenerationProvider = ({ children }) => {
     }
   }, [state.promptHistory]);
 
-  const generateImages = useCallback(async () => {
-    if (!state.prompt || !state.prompt.trim()) {
-      showErrorToast("Please enter a prompt!");
-      dispatch({ type: ActionTypes.FINISH_LOADING });
-      return;
-    }
-
-    dispatch({
-      type: ActionTypes.SET_IMAGES,
-      payload: Array(NUM_IMAGES_TO_GENERATE).fill({ status: "queued" }),
-    });
-
-    const baseSeed = state.seed
-      ? parseInt(state.seed, 10)
-      : Math.floor(Math.random() * 1000000000);
-
-    let firstImageUrl = null;
-
-    for (let i = 0; i < NUM_IMAGES_TO_GENERATE; i++) {
-      dispatch({
-        type: ActionTypes.SET_IMAGE,
-        index: i,
-        payload: { status: "loading" },
-      });
-
-      let imageResult = null;
-      try {
-        const apiResponse = await generateImageFromApi({
-          prompt: state.prompt,
-          model: state.model,
-          width: state.width,
-          height: state.height,
-          seed: baseSeed + i,
-          noLogo: state.noLogo,
-        });
-
-        if (apiResponse && apiResponse.displayUrl) {
-          imageResult = {
-            id: `${Date.now()}-${i}`,
-            prompt: state.prompt,
-            model: state.model,
-            seed: baseSeed + i,
-            width: state.width,
-            height: state.height,
-            displayUrl: apiResponse.displayUrl,
-            permanentUrl: apiResponse.permanentUrl || apiResponse.displayUrl,
-            status: "ready",
-          };
-
-          if (!firstImageUrl) firstImageUrl = apiResponse.displayUrl;
-          blobUrlsRef.current.push(apiResponse.displayUrl);
-        } else {
-          imageResult = { status: "error" };
-          showWarningToast("One of the images could not be generated.");
-        }
-      } catch {
-        imageResult = { status: "error" };
-        showWarningToast("Image generation failed for one item.");
+  const generateImages = useCallback(
+    async (options = { iterate: true }) => {
+      if (!state.prompt || !state.prompt.trim()) {
+        showErrorToast("Please enter a prompt!");
+        dispatch({ type: ActionTypes.FINISH_LOADING });
+        return;
       }
 
-      dispatch({ type: ActionTypes.SET_IMAGE, index: i, payload: imageResult });
-    }
-
-    dispatch({ type: ActionTypes.FINISH_LOADING });
-
-    if (firstImageUrl) {
       dispatch({
-        type: ActionTypes.ADD_TO_HISTORY,
-        payload: { prompt: state.prompt, imageUrl: firstImageUrl },
+        type: ActionTypes.SET_IMAGES,
+        payload: Array(NUM_IMAGES_TO_GENERATE).fill({ status: "queued" }),
       });
-      showSuccessToast("Prompt saved to history!");
-    }
-  }, [
-    state.prompt,
-    state.model,
-    state.width,
-    state.height,
-    state.seed,
-    state.noLogo,
-  ]);
+
+      const baseSeed = state.seed
+        ? parseInt(state.seed, 10)
+        : Math.floor(Math.random() * 1000000000);
+
+      let firstImageUrl = null;
+
+      for (let i = 0; i < NUM_IMAGES_TO_GENERATE; i++) {
+        dispatch({
+          type: ActionTypes.SET_IMAGE,
+          index: i,
+          payload: { status: "loading" },
+        });
+
+        const currentSeed = options.iterate ? baseSeed + i : baseSeed;
+
+        let imageResult = null;
+        try {
+          const apiResponse = await generateImageFromApi({
+            prompt: state.prompt,
+            model: state.model,
+            width: state.width,
+            height: state.height,
+            seed: currentSeed,
+            noLogo: state.noLogo,
+          });
+
+          if (apiResponse && apiResponse.displayUrl) {
+            imageResult = {
+              id: `${Date.now()}-${i}`,
+              prompt: state.prompt,
+              model: state.model,
+              seed: currentSeed,
+              width: state.width,
+              height: state.height,
+              displayUrl: apiResponse.displayUrl,
+              permanentUrl: apiResponse.permanentUrl || apiResponse.displayUrl,
+              status: "ready",
+            };
+
+            if (!firstImageUrl) firstImageUrl = apiResponse.displayUrl;
+            blobUrlsRef.current.push(apiResponse.displayUrl);
+          } else {
+            imageResult = { status: "error" };
+            showWarningToast("One of the images could not be generated.");
+          }
+        } catch {
+          imageResult = { status: "error" };
+          showWarningToast("Image generation failed for one item.");
+        }
+
+        dispatch({
+          type: ActionTypes.SET_IMAGE,
+          index: i,
+          payload: imageResult,
+        });
+      }
+
+      dispatch({ type: ActionTypes.FINISH_LOADING });
+
+      if (firstImageUrl) {
+        dispatch({
+          type: ActionTypes.ADD_TO_HISTORY,
+          payload: { prompt: state.prompt, imageUrl: firstImageUrl },
+        });
+        showSuccessToast("Prompt saved to history!");
+      }
+    },
+    [
+      state.prompt,
+      state.model,
+      state.width,
+      state.height,
+      state.seed,
+      state.noLogo,
+    ],
+  );
 
   return (
     <ImageGenerationContext.Provider
