@@ -42,7 +42,7 @@ This application provides a complete workflow for AI image generation and manage
     - *Error:* Displays an error icon and helpful message.
 - **Image Modal:** Click an image to view it larger, with metadata (prompt, model, seed, dimensions).
 
-### ✨ Context-Aware Prompt Autocompletion
+### 🔄 Context-Aware Prompt Autocompletion
 
 To enhance the creative process and help users craft more effective prompts, this application features an intelligent autocomplete system. Instead of just providing random prompts, this feature interactively suggests relevant options from a predefined library as the user types.
 
@@ -69,6 +69,31 @@ The power of the suggestion engine comes from its data source. To add, remove, o
 * Simply edit the JSON arrays in `/public/prompts.json` and `/public/generated-prompts.json`.
 
 The application will automatically pick up any changes on the next reload.
+
+
+### 🎲 Remix Prompt: Generate New Styles from a Good Idea
+
+The "Remix Prompt" feature provides a powerful way to iterate on a successful prompt without getting stuck in a creative loop. When you find an image whose prompt you like, this feature lets you instantly re-run that prompt with a completely new and random seed.
+
+This is perfect for when you think, "I love this concept, but I want to see a completely different take on it."
+
+## How to Use
+
+1.  **Generate a Batch:** Create your initial grid of images.
+2.  **Find a Concept You Like:** Identify an image where the core idea and prompt text are strong.
+3.  **Click the Game Die Icon (🎲):** Hover over your chosen image and click the "Remix Prompt" button (which now shows a refresh icon in the UI).
+4.  **A New Batch Appears:** The application will immediately:
+    * Copy the prompt, model, and dimensions into the main settings.
+    * **Clear the seed field** to ensure randomization.
+    * Generate a brand new grid of images using that prompt, but with a completely different artistic style and composition.
+
+
+## How It Works (Technical Breakdown)
+
+* **State Update:** The `handleGenerateMore` function in `CreateImagePage.jsx` is triggered on click.
+* **Settings Replication:** It dispatches actions to update the `prompt`, `model`, and `dimensions` in the `ImageGenerationContext` to match the selected image.
+* **Seed Randomization:** Crucially, it dispatches an action to set the `seed` to an empty string (`payload: ""`).
+* **New Generation:** When `generateImages()` is called, the context sees that the seed field is empty and therefore generates a new, random `baseSeed`, ensuring the subsequent batch of images is entirely fresh.
 
 ### ✨ Image Modal Thumbnail Navigation
 

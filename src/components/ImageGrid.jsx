@@ -12,13 +12,13 @@ const ImageGrid = ({
   onEdit,
   onSelectCompare,
   comparisonImages = [],
+  onGenerateMore,
 }) => {
   const showPlaceholder = !loading && images.length === 0 && !error;
 
   if (
     loading &&
     images.length > 0 &&
-    // FIX: Add a guard to ensure 'img' exists before accessing its properties.
     images.every(
       (img) => img && (img.status === "queued" || img.status === "loading"),
     )
@@ -80,6 +80,7 @@ const ImageGrid = ({
                 }}
                 onEdit={onEdit}
                 onSelectCompare={onSelectCompare}
+                onGenerateMore={onGenerateMore}
               />
             );
           })}

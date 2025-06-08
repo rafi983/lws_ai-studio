@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useFavourites } from "../context/FavouritesContext";
 import { FiClock, FiAlertTriangle } from "react-icons/fi";
 import { BsCheckCircleFill } from "react-icons/bs";
+import { HiSparkles } from "react-icons/hi";
 
 export default function ImageCard({
   image,
@@ -9,7 +10,8 @@ export default function ImageCard({
   onClick,
   onEdit,
   onSelectCompare,
-  isSelected, // receive selection status as prop
+  isSelected,
+  onGenerateMore,
 }) {
   const [hasError, setHasError] = useState(false);
   const { state, dispatch } = useFavourites();
@@ -100,14 +102,12 @@ export default function ImageCard({
             loading="lazy"
           />
 
-          {/* Favorite badge */}
           {isFav && (
             <div className="absolute top-2 left-10 bg-pink-600 text-xs text-white px-2 py-0.5 rounded-full z-10 select-none">
               ★ Favourite
             </div>
           )}
 
-          {/* Favorite toggle button top-right */}
           <div className="absolute top-2 right-2 flex flex-col gap-1 z-20">
             <button
               className="p-2 bg-black/50 rounded-full hover:bg-black/80 transition"
@@ -120,12 +120,7 @@ export default function ImageCard({
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
-                      2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81
-                      14.76 3 16.5 3c3.08 0 5.5 2.42 5.5 5.5
-                      0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-                  />
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3c3.08 0 5.5 2.42 5.5 5.5 0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                 </svg>
               ) : (
                 <svg
@@ -135,12 +130,7 @@ export default function ImageCard({
                   strokeWidth="2"
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
-                      2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81
-                      14.76 3 16.5 3c3.08 0 5.5 2.42 5.5 5.5
-                      0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-                  />
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3c3.08 0 5.5 2.42 5.5 5.5 0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                 </svg>
               )}
             </button>
@@ -169,6 +159,19 @@ export default function ImageCard({
                   <polyline points="7 10 12 15 17 10" />
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
+              </button>
+            )}
+
+            {onGenerateMore && (
+              <button
+                className="p-2 bg-black/50 rounded-full hover:bg-black/80 transition"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onGenerateMore(image);
+                }}
+                title="Generate more like this"
+              >
+                <HiSparkles className="w-4 h-4 text-purple-300" />
               </button>
             )}
 
@@ -206,11 +209,10 @@ export default function ImageCard({
         }
       }}
     >
-      {/* Comparison selection checkbox */}
       {onSelectCompare && image.status === "ready" && (
         <button
           type="button"
-          data-image-id={image.id} // ✅ Needed for auto-uncheck
+          data-image-id={image.id}
           onClick={(e) => {
             e.stopPropagation();
             onSelectCompare(image, !isSelected);

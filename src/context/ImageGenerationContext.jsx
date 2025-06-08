@@ -215,7 +215,9 @@ export const ImageGenerationProvider = ({ children }) => {
     if (state.images.length > 0) {
       const dataToSave = {
         prompt: state.prompt,
-        images: state.images.map(({ displayUrl, ...rest }) => rest),
+        images: state.images
+          .filter((image) => image) // SAFETY CHECK: Filter out any undefined items
+          .map(({ displayUrl, ...rest }) => rest), // Now, safely map
       };
       localStorage.setItem(
         LOCAL_STORAGE_IMAGES_KEY,
@@ -265,7 +267,7 @@ export const ImageGenerationProvider = ({ children }) => {
           model: state.model,
           width: state.width,
           height: state.height,
-          seed: state.seed ? baseSeed : baseSeed + i,
+          seed: baseSeed + i,
           noLogo: state.noLogo,
         });
 
@@ -274,7 +276,7 @@ export const ImageGenerationProvider = ({ children }) => {
             id: `${Date.now()}-${i}`,
             prompt: state.prompt,
             model: state.model,
-            seed: state.seed ? baseSeed : baseSeed + i,
+            seed: baseSeed + i,
             width: state.width,
             height: state.height,
             displayUrl: apiResponse.displayUrl,

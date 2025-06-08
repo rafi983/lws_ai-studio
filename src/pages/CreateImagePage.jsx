@@ -244,6 +244,29 @@ const CreateImagePage = () => {
     }
   };
 
+  const handleGenerateMore = useCallback(
+    (image) => {
+      if (!image) return;
+
+      dispatch({ type: "SET_PROMPT", payload: image.prompt });
+      dispatch({ type: "SET_MODEL", payload: image.model });
+      dispatch({
+        type: "SET_DIMENSIONS",
+        payload: { width: image.width, height: image.height },
+      });
+      dispatch({ type: "SET_SEED", payload: "" });
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      setTimeout(() => {
+        generateImages();
+      }, 100);
+
+      showSuccessToast("Remixing new images based on your selection!");
+    },
+    [dispatch, generateImages],
+  );
+
   const closeModal = () => setIsModalOpen(false);
 
   const goToNextImage = () => {
@@ -318,6 +341,7 @@ const CreateImagePage = () => {
         onEdit={(img) => setEditorImage(img)}
         onSelectCompare={handleSelectCompare}
         comparisonImages={comparisonImages}
+        onGenerateMore={handleGenerateMore}
       />
 
       <ImageModal
