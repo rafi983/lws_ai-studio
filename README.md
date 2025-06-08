@@ -87,14 +87,14 @@ The **Canvas Editor** is a full-featured, in-browser image editor built into the
 
 ### 🔎 Image Comparison
 
-This feature allows users to select two generated images and compare them side-by-side in a responsive modal view. It enhances the user experience by making it easy to visually analyze differences between AI-generated images.
+This feature allows users to select two generated images and compare them in a responsive modal view. It enhances the user experience by making it easy to visually analyze differences between AI-generated images.
 
 ## 💡 How It Works
 
 - ✅ **Selection**: Users select images for comparison using a bold checkmark button (`BsCheckCircleFill` from `react-icons`) on each image card.
 - 🔢 **Selection Limit**: Only two images can be selected at a time. Selecting more triggers a toast notification 🔔 informing the user.
 - 🔘 **Comparison Button**: Once two images are selected, a floating **Compare Selected (2)** button appears at the bottom-right corner.
-- 🖼️ **Comparison Modal**: Clicking the button opens a modal displaying the two images side-by-side with detailed metadata (prompt, model, seed, size).
+- 🖼️ **Comparison Modal**: Clicking the button opens a modal displaying the two images with detailed metadata (prompt, model, seed, size).
 - ❌ **Close Modal**: Clicking outside the modal or on the close (✖️) button closes the comparison view.
 - ⚡ **UI/UX Enhancements**: Utilizes `react-icons` for clear visual feedback and `toastUtils` for real-time notifications.
 
