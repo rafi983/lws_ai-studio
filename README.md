@@ -42,6 +42,34 @@ This application provides a complete workflow for AI image generation and manage
     - *Error:* Displays an error icon and helpful message.
 - **Image Modal:** Click an image to view it larger, with metadata (prompt, model, seed, dimensions).
 
+### ✨ Context-Aware Prompt Autocompletion
+
+To enhance the creative process and help users craft more effective prompts, this application features an intelligent autocomplete system. Instead of just providing random prompts, this feature interactively suggests relevant options from a predefined library as the user types.
+
+This transforms the prompt input from a simple text field into a powerful discovery tool, speeding up workflow and improving the quality of generated images.
+
+## How to Use
+
+1.  **Start Typing**: Navigate to the "Create Image" page and begin typing in the prompt input field.
+2.  **View Suggestions**: After typing 3 or more characters, a dropdown menu will automatically appear below the input, showing up to 5 suggestions from the prompt library that match your input.
+3.  **Select a Prompt**: Click on any suggestion from the list. The input field will be instantly populated with the selected prompt.
+4.  **Generate**: Continue to edit the prompt or click the generate button.
+
+
+## How It Works (Technical Breakdown)
+
+* **Data Aggregation**: The system fetches all prompts from `/public/prompts.json` and `/public/generated-prompts.json`. It combines them into a single, unified list in the `CreateImagePage` component.
+* **Live Filtering**: This master list is passed to the `PromptInput` component. A `useEffect` hook listens for changes to the user's input. It filters the list in real-time to find case-insensitive matches for the typed text.
+* **Dynamic Rendering**: The top 5 matches are stored in a state variable, which conditionally renders a dropdown list. When a user clicks a suggestion, it updates the parent's state, and the dropdown disappears.
+
+## Customization
+
+The power of the suggestion engine comes from its data source. To add, remove, or modify the autocomplete suggestions:
+
+* Simply edit the JSON arrays in `/public/prompts.json` and `/public/generated-prompts.json`.
+
+The application will automatically pick up any changes on the next reload.
+
 ### ✨ Image Modal Thumbnail Navigation
 
 **Feature:**  

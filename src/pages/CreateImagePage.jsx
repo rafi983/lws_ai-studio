@@ -26,6 +26,7 @@ const CreateImagePage = () => {
   const [usedTemplates, setUsedTemplates] = useState([]);
   const [aiPrompts, setAIPrompts] = useState([]);
   const [usedAIPrompts, setUsedAIPrompts] = useState([]);
+  const [allPrompts, setAllPrompts] = useState([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentModalImageIndex, setCurrentModalImageIndex] = useState(0);
@@ -92,6 +93,13 @@ const CreateImagePage = () => {
     fetchJsonData("/prompts.json", setTemplatePrompts, "templates");
     fetchJsonData("/generated-prompts.json", setAIPrompts, "AI prompts");
   }, []);
+
+  useEffect(() => {
+    if (templatePrompts.length > 0 || aiPrompts.length > 0) {
+      const combined = [...new Set([...templatePrompts, ...aiPrompts])];
+      setAllPrompts(combined);
+    }
+  }, [templatePrompts, aiPrompts]);
 
   const handleSelectCompare = (img, selected) => {
     if (selected) {
@@ -279,6 +287,7 @@ const CreateImagePage = () => {
         modelsLoading={modelsLoading}
         onTemplatesClick={handleTemplatesClick}
         onGeneratePromptsClick={handleGeneratePromptsClick}
+        allPrompts={allPrompts}
       />
 
       <AdvancedSettings
