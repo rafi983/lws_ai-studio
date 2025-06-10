@@ -13,8 +13,26 @@ const ActionTypes = {
 const FavouritesContext = createContext();
 const LOCAL_STORAGE_FAVOURITES_KEY = "lws-ai-favourites";
 
-const initialState = {
-  favourites: {},
+const loadInitialState = () => {
+  try {
+    const savedFavourites = localStorage.getItem(LOCAL_STORAGE_FAVOURITES_KEY);
+    if (savedFavourites) {
+      const parsedFavourites = JSON.parse(savedFavourites);
+      if (
+        parsedFavourites &&
+        typeof parsedFavourites === "object" &&
+        !Array.isArray(parsedFavourites)
+      ) {
+        return { favourites: parsedFavourites };
+      }
+    }
+  } catch (err) {
+    showErrorToast(
+      `Error loading favourites: ${err.message}. Favourites have been cleared.`,
+    );
+    localStorage.removeItem(LOCAL_STORAGE_FAVOURITES_KEY);
+  }
+  return { favourites: {} };
 };
 
 const reducer = (state, action) => {
@@ -31,28 +49,12 @@ const reducer = (state, action) => {
       const newFavourites = { ...state.favourites };
       const imageId = String(image.id);
 
-      const existingFav = Object.values(newFavourites).find(
-        (fav) => fav.seed && fav.seed === image.seed,
-      );
-
-      if (existingFav) {
-        delete newFavourites[existingFav.id];
-        showSuccessToast(
-          `${
-            image.prompt
-              ? "'" + image.prompt.substring(0, 20) + "...'"
-              : "Image"
-          } removed from favourites!`,
-        );
+      if (newFavourites[imageId]) {
+        delete newFavourites[imageId];
+        showSuccessToast("Removed from favourites!");
       } else {
         newFavourites[imageId] = image;
-        showSuccessToast(
-          `${
-            image.prompt
-              ? "'" + image.prompt.substring(0, 20) + "...'"
-              : "Image"
-          } added to favourites!`,
-        );
+        showSuccessToast("Added to favourites!");
       }
 
       return { ...state, favourites: newFavourites };
@@ -75,64 +77,28 @@ const reducer = (state, action) => {
 };
 
 export const FavouritesProvider = ({ children }) => {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, dispatch] = useReducer(reducer, undefined, loadInitialState);
 
   useEffect(() => {
-    try {
-      const savedFavourites = localStorage.getItem(
-        LOCAL_STORAGE_FAVOURITES_KEY,
-      );
-      if (savedFavourites) {
-        const parsedFavourites = JSON.parse(savedFavourites);
-        if (
-          parsedFavourites &&
-          typeof parsedFavourites === "object" &&
-          !Array.isArray(parsedFavourites)
-        ) {
-          dispatch({
-            type: ActionTypes.SET_FAVOURITES,
-            payload: parsedFavourites,
-          });
-        } else {
-          showWarningToast(
-            "Saved favourites data was malformed and has been cleared.",
-          );
-          localStorage.removeItem(LOCAL_STORAGE_FAVOURITES_KEY);
-          dispatch({ type: ActionTypes.SET_FAVOURITES, payload: {} });
-        }
-      }
-    } catch (err) {
-      showErrorToast(
-        `Error loading favourites: ${err.message}. Favourites have been cleared.`,
-      );
-      localStorage.removeItem(LOCAL_STORAGE_FAVOURITES_KEY);
-      dispatch({ type: ActionTypes.SET_FAVOURITES, payload: {} });
-    }
-  }, []);
-
-  useEffect(() => {
-    if (
-      state.favourites &&
-      typeof state.favourites === "object" &&
-      !Array.isArray(state.favourites)
-    ) {
+    if (state.favourites) {
       try {
+        const favouritesToSave = {};
+        Object.entries(state.favourites).forEach(([key, image]) => {
+          const { displayUrl, ...rest } = image;
+          favouritesToSave[key] = rest;
+        });
+
         localStorage.setItem(
           LOCAL_STORAGE_FAVOURITES_KEY,
-          JSON.stringify(state.favourites),
+          JSON.stringify(favouritesToSave),
         );
       } catch (error) {
         showErrorToast(
           `Failed to save favourites to your browser: ${error.message}`,
         );
       }
-    } else if (typeof state.favourites !== "undefined") {
-      showWarningToast(
-        "An attempt to save an invalid favourites collection was prevented.",
-      );
     }
   }, [state.favourites]);
-
   return (
     <FavouritesContext.Provider value={{ state, dispatch }}>
       {children}

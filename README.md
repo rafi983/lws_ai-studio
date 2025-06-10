@@ -153,6 +153,37 @@ This feature allows users to select two generated images and compare them direct
 
 **Pro Tip:** This feature is perfect for seeing how a small change in a prompt or a different seed affects the final outcome!
 
+
+### 📂 Organize Your Workflow with Image Collections
+
+As you generate more artwork, managing your creations becomes essential. The **Collections** feature addresses this by providing a powerful, album-like system directly within the application. It allows you to group related images into named collections, such as "Project Logos," "Sci-Fi Landscapes," or "Character Studies."
+
+This transforms the application from a simple image generator into a structured creative workspace, helping you maintain a tidy environment and easily access images for specific projects.
+
+## How to Use
+
+1.  **Find an Image**: On the "Create Image" page, hover over any generated image to reveal the action icons.
+2.  **Add to a Collection**: Click the **Add to Collection** icon (a folder with a plus sign). A modal window will appear.
+3.  **Create or Select**:
+    * To create a new collection, type a name in the input field at the bottom and click the checkmark.
+    * To add to an existing album, simply click on its name from the list.
+4.  **View & Manage**: Navigate to the **Collections** page using the main header. Here you can view all your albums, see the images within them, remove specific images, or delete entire collections.
+
+## How It Works (Technical Breakdown)
+
+* **Local Persistence**: All collection data is stored directly in the user's browser in `localStorage` under the key `lws-ai-collections`. The data is structured as a JSON object where each key is a unique collection ID.
+* **Centralized State Management**: A dedicated React Context, `CollectionsContext.jsx`, manages the state for all collection-related data. It uses a `useReducer` hook for predictable state transitions (e.g., `CREATE_COLLECTION`, `ADD_IMAGE_TO_COLLECTION`).
+* **Lazy Initialization**: The context uses the "lazy initializer" pattern with `useReducer` to synchronously load all data from `localStorage` the moment the app starts. This prevents race conditions and ensures data is always ready for display on page load.
+* **Component Integration**: The `ImageCard` component has been updated with a button that opens the `AddToCollectionModal`, a self-contained component for handling the creation and selection logic. The `CollectionsPage` dynamically renders the collections and their contents by pulling state from the `CollectionsContext`.
+
+## Data & Privacy
+
+The power of this feature lies in its simplicity and privacy.
+
+* All of your collections and images are stored **locally on your computer** within your browser's storage. No data is ever sent to an external server.
+* This ensures your work remains private and accessible even if you are offline.
+
+
 ### ⚙️ Advanced Generation Controls
 - **Model Selection:** Choose from dynamically fetched AI models.
 - **Seed Control:** Lock a seed for reproducibility or leave blank for randomness.

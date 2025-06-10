@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useFavourites } from "../context/FavouritesContext";
 import { FiClock, FiAlertTriangle, FiFolderPlus } from "react-icons/fi";
 import { BsCheckCircleFill } from "react-icons/bs";
 import { HiSparkles } from "react-icons/hi";
 import AddToCollectionModal from "./AddToCollectionModal";
+import ImageSkeleton from "./ImageSkeleton";
 
 export default function ImageCard({
   image,
@@ -16,22 +17,95 @@ export default function ImageCard({
   onRemoveFromCollection,
   collectionId,
 }) {
+  const [imageUrl, setImageUrl] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const { state, dispatch } = useFavourites();
+
+  const { state: favState, dispatch: favDispatch } = useFavourites();
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
 
   const imageId = image.id || image.permanentUrl;
-  const isFav = imageId ? !!state.favourites[imageId] : false;
+  const isFav = imageId ? !!favState.favourites[imageId] : false;
+
+  useEffect(() => {
+    let isMounted = true;
+    let objectUrl = null;
+
+    const rehydrateImage = async () => {
+      // ✅ FIX: If the image is just a placeholder for a new generation,
+      // let the status-based rendering handle it and do not run the rehydration logic.
+      if (image.status === "queued" || image.status === "loading") {
+        setIsLoading(false);
+        setHasError(false);
+        return;
+      }
+
+      if (image.displayUrl) {
+        setImageUrl(image.displayUrl);
+        setIsLoading(false);
+        return;
+      }
+
+      if (image.permanentUrl) {
+        try {
+          const res = await fetch(image.permanentUrl);
+          if (!res.ok) throw new Error("Image fetch failed");
+          const blob = await res.blob();
+          objectUrl = URL.createObjectURL(blob);
+          if (isMounted) {
+            setImageUrl(objectUrl);
+          }
+        } catch (error) {
+          if (isMounted) {
+            setHasError(true);
+          }
+        } finally {
+          if (isMounted) {
+            setIsLoading(false);
+          }
+        }
+      } else {
+        if (isMounted) {
+          setHasError(true);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    rehydrateImage();
+
+    return () => {
+      isMounted = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [image.displayUrl, image.permanentUrl, image.status]); // ✅ Add image.status to the dependency array
 
   const toggleFav = (e) => {
     e.stopPropagation();
     if (!imageId) return;
-    dispatch({ type: "TOGGLE_FAVOURITE", payload: { ...image, id: imageId } });
+    favDispatch({
+      type: "TOGGLE_FAVOURITE",
+      payload: { ...image, id: imageId },
+    });
   };
 
-  const imageUrlToDisplay = image.displayUrl || image.permanentUrl;
-
   const renderContent = () => {
+    if (isLoading) {
+      return <ImageSkeleton />;
+    }
+
+    if (hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-2 text-red-400">
+          <FiAlertTriangle className="w-8 h-8" />
+          <p className="text-sm text-center">Unable to load image.</p>
+        </div>
+      );
+    }
+
+    // This logic now runs correctly for new generations
     if (image.status === "queued") {
       return (
         <div className="flex flex-col items-center justify-center gap-2 text-zinc-400">
@@ -44,7 +118,6 @@ export default function ImageCard({
         </div>
       );
     }
-
     if (image.status === "loading") {
       return (
         <div className="flex flex-col items-center justify-center gap-3 text-zinc-300">
@@ -78,7 +151,6 @@ export default function ImageCard({
             Please wait{" "}
             <span className="text-purple-400 font-medium">10–15 seconds</span>.
           </p>
-
           <div className="w-3/5 h-1 bg-purple-700/30 rounded-full overflow-hidden">
             <div className="h-full w-2/3 bg-gradient-to-r from-purple-500 via-purple-400 to-purple-600 animate-pulse rounded-full"></div>
           </div>
@@ -86,32 +158,21 @@ export default function ImageCard({
       );
     }
 
-    if (hasError || image.status === "error") {
-      return (
-        <div className="flex flex-col items-center justify-center gap-2 text-red-400">
-          <FiAlertTriangle className="w-8 h-8" />
-          <p className="text-sm text-center">Unable to load image.</p>
-        </div>
-      );
-    }
-
-    if (image.status === "ready" && imageUrlToDisplay && !hasError) {
+    if (imageUrl) {
       return (
         <>
           <img
-            src={imageUrlToDisplay}
+            src={imageUrl}
             alt={image.prompt || "Generated AI"}
             className="absolute inset-0 w-full h-full object-cover group-hover:opacity-80 transition-opacity"
             onError={() => setHasError(true)}
             loading="lazy"
           />
-
           {isFav && (
             <div className="absolute top-2 left-10 bg-pink-600 text-xs text-white px-2 py-0.5 rounded-full z-10 select-none">
               ★ Favourite
             </div>
           )}
-
           <div className="absolute top-2 right-2 flex flex-col gap-1 z-20">
             <button
               className="p-2 bg-black/50 rounded-full hover:bg-black/80 transition"
@@ -138,7 +199,6 @@ export default function ImageCard({
                 </svg>
               )}
             </button>
-
             <button
               className="p-2 bg-black/50 rounded-full hover:bg-black/80 transition"
               onClick={(e) => {
@@ -149,7 +209,6 @@ export default function ImageCard({
             >
               <FiFolderPlus className="w-4 h-4 text-white" />
             </button>
-
             {onDownload && (
               <button
                 className="p-2 bg-black/50 rounded-full hover:bg-black/80 transition"
@@ -176,7 +235,6 @@ export default function ImageCard({
                 </svg>
               </button>
             )}
-
             {onGenerateMore && (
               <button
                 className="p-2 bg-black/50 rounded-full hover:bg-black/80 transition"
@@ -189,7 +247,6 @@ export default function ImageCard({
                 <HiSparkles className="w-4 h-4 text-purple-300" />
               </button>
             )}
-
             {onEdit && (
               <button
                 className="p-2 bg-black/50 rounded-full hover:bg-black/80 transition"
@@ -202,7 +259,6 @@ export default function ImageCard({
                 ✎
               </button>
             )}
-
             {onRemoveFromCollection && collectionId && (
               <button
                 className="p-2 bg-red-600/80 rounded-full hover:bg-red-500 transition"
@@ -232,12 +288,10 @@ export default function ImageCard({
         </>
       );
     }
-
     return null;
   };
 
-  const isClickable =
-    image.status === "ready" && imageUrlToDisplay && !hasError;
+  const isClickable = !isLoading && !hasError && imageUrl;
 
   return (
     <>
@@ -269,7 +323,6 @@ export default function ImageCard({
             <BsCheckCircleFill className="w-6 h-6" />
           </button>
         )}
-
         {renderContent()}
       </div>
       {isCollectionModalOpen && (

@@ -5,25 +5,29 @@ const CollectionsContext = createContext();
 const LOCAL_STORAGE_COLLECTIONS_KEY = "lws-ai-collections";
 
 const ActionTypes = {
-  LOAD_COLLECTIONS: "LOAD_COLLECTIONS",
   CREATE_COLLECTION: "CREATE_COLLECTION",
   DELETE_COLLECTION: "DELETE_COLLECTION",
   ADD_IMAGE_TO_COLLECTION: "ADD_IMAGE_TO_COLLECTION",
   REMOVE_IMAGE_FROM_COLLECTION: "REMOVE_IMAGE_FROM_COLLECTION",
 };
 
-const initialState = {
-  collections: {},
+const loadInitialState = () => {
+  try {
+    const savedCollections = localStorage.getItem(
+      LOCAL_STORAGE_COLLECTIONS_KEY,
+    );
+    if (savedCollections) {
+      return { collections: JSON.parse(savedCollections) };
+    }
+  } catch (err) {
+    showErrorToast(`Error loading collections: ${err.message}`);
+    localStorage.removeItem(LOCAL_STORAGE_COLLECTIONS_KEY);
+  }
+  return { collections: {} };
 };
 
 const collectionsReducer = (state, action) => {
   switch (action.type) {
-    case ActionTypes.LOAD_COLLECTIONS:
-      return {
-        ...state,
-        collections: action.payload || {},
-      };
-
     case ActionTypes.CREATE_COLLECTION: {
       const { id, name } = action.payload;
       if (state.collections[id]) {
@@ -103,35 +107,31 @@ const collectionsReducer = (state, action) => {
 };
 
 export const CollectionsProvider = ({ children }) => {
-  const [state, dispatch] = useReducer(collectionsReducer, initialState);
+  const [state, dispatch] = useReducer(
+    collectionsReducer,
+    undefined,
+    loadInitialState,
+  );
 
   useEffect(() => {
     try {
-      const savedCollections = localStorage.getItem(
-        LOCAL_STORAGE_COLLECTIONS_KEY,
-      );
-      if (savedCollections) {
-        dispatch({
-          type: ActionTypes.LOAD_COLLECTIONS,
-          payload: JSON.parse(savedCollections),
+      const collectionsToSave = {};
+      Object.entries(state.collections).forEach(([key, collection]) => {
+        const sanitizedImages = collection.images.map((image) => {
+          const { displayUrl, ...rest } = image;
+          return rest;
         });
-      }
-    } catch (err) {
-      showErrorToast(`Error loading collections: ${err.message}`);
-    }
-  }, []);
+        collectionsToSave[key] = { ...collection, images: sanitizedImages };
+      });
 
-  useEffect(() => {
-    try {
       localStorage.setItem(
         LOCAL_STORAGE_COLLECTIONS_KEY,
-        JSON.stringify(state.collections),
+        JSON.stringify(collectionsToSave),
       );
     } catch (error) {
       showErrorToast(`Failed to save collections: ${error.message}`);
     }
   }, [state.collections]);
-
   return (
     <CollectionsContext.Provider value={{ state, dispatch }}>
       {children}
