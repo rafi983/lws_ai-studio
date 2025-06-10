@@ -190,6 +190,74 @@ The power of this feature lies in its simplicity and privacy.
 * This ensures your work remains private and accessible even if you are offline.
 
 
+### 📊 Your Creative Stats Dashboard
+
+The **"My Stats"** page provides a personalized dashboard that offers insightful analytics into your creative habits. By processing the data stored locally in your browser, it generates charts and key metrics that help you understand your workflow, discover your most-used settings, and see when you're most productive.
+
+---
+
+## 🔢 Key Metrics & Visualizations
+
+- **Usage Overview**: High-level counts of total images generated, unique prompts used, favorites, and downloads.
+- **Curation Rate**: A unique percentage showing how many of your generated images you deem good enough to save (as a favorite or in a collection).
+- **Top Keywords & Models**: Bar charts displaying your most frequently used prompt keywords and AI models.
+- **Creative Habits**: Bar charts breaking down your activity by image dimension, aspect ratio, day of the week, and time of day.
+- **Prompt Analysis**: A detailed look at your prompting style, including your longest and shortest prompts and your overall lexical diversity.
+
+---
+
+## ⚙️ How It Works
+
+- The `StatsPage` component accesses data from all the application's contexts (`useDownloads`, `useFavourites`, `useImageGeneration`, etc.).
+- A `useMemo` hook is used to perform all statistical calculations efficiently. This ensures that the complex data processing only runs when the underlying data changes, not on every render.
+- All calculations—from word frequency analysis to aspect ratio simplification—are done **client-side**.
+- The data is passed to a reusable `StatCard` component, which dynamically renders either a key value or a dependency-free CSS bar chart to visualize the information.
+
+---
+
+### 💾 Export & Import Your Data
+
+This feature gives you full ownership and control over your data. You can save a complete backup of your entire workspace and restore it on any device, ensuring your work is never lost.
+
+---
+
+## 📤 Features
+
+- **One-Click Export**: Download a single `.json` file containing all your settings, prompt history, favorites, downloads, and collections.
+- **Seamless Import**: Upload a backup file to completely restore your workspace.
+- **Danger Zone**: A secure option to permanently clear all application data from your browser.
+
+---
+
+## 🧭 How to Use
+
+1. **Navigate** to the Settings page from the main header.
+
+2. **To Export**:
+    - Click the **"Export Data"** button.
+    - A backup file named `lws-ai-studio-backup-[date].json` will be saved to your computer.
+
+3. **To Import**:
+    - Click the **"Import from File"** button and select your backup `.json` file.
+    - You will be asked to **confirm the action**, as it will overwrite all current data.
+    - After confirming, the app will **reload** with your restored data.
+
+---
+
+## 🔍 How It Works
+
+- **Export**:
+    - Reads all relevant keys from the browser’s `localStorage`.
+    - Bundles them into a single JavaScript object and converts it to a JSON string.
+    - Creates a `Blob` from the string and triggers download via a temporary link.
+
+- **Import**:
+    - Uses the `FileReader` API to read the selected `.json` file as text.
+    - Parses the JSON back into an object with `JSON.parse()`.
+    - Clears the current `localStorage` (after confirmation), writes the new data, and performs a `window.location.reload()` to reinitialize the app with the imported data.
+
+
+
 ### ⚙️ Advanced Generation Controls
 - **Model Selection:** Choose from dynamically fetched AI models.
 - **Seed Control:** Lock a seed for reproducibility or leave blank for randomness.
