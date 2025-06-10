@@ -7,6 +7,8 @@ import { ImageGenerationProvider } from "./context/ImageGenerationContext.jsx";
 import { DownloadsProvider } from "./context/DownloadsContext.jsx";
 import { FavouritesProvider } from "./context/FavouritesContext.jsx";
 import FavouritesPage from "./pages/FavouritesPage.jsx";
+import { CollectionsProvider } from "./context/CollectionsContext.jsx";
+import CollectionsPage from "./pages/CollectionsPage.jsx";
 
 function App() {
   const [currentPage, setCurrentPage] = useState("create");
@@ -18,16 +20,19 @@ function App() {
   return (
     <DownloadsProvider>
       <FavouritesProvider>
-        <ImageGenerationProvider>
-          <Layout>
-            <Header currentPage={currentPage} navigate={navigate} />
-            <main className="relative z-10">
-              {currentPage === "create" && <CreateImagePage />}
-              {currentPage === "downloaded" && <DownloadedPage />}
-              {currentPage === "favourites" && <FavouritesPage />}
-            </main>
-          </Layout>
-        </ImageGenerationProvider>
+        <CollectionsProvider>
+          <ImageGenerationProvider>
+            <Layout>
+              <Header currentPage={currentPage} navigate={navigate} />
+              <main className="relative z-10">
+                {currentPage === "create" && <CreateImagePage />}
+                {currentPage === "collections" && <CollectionsPage />}
+                {currentPage === "downloaded" && <DownloadedPage />}
+                {currentPage === "favourites" && <FavouritesPage />}
+              </main>
+            </Layout>
+          </ImageGenerationProvider>
+        </CollectionsProvider>
       </FavouritesProvider>
     </DownloadsProvider>
   );

@@ -1,5 +1,5 @@
 import React from "react";
-import logo from "../assets/logo.svg"; // Make sure your logo is at src/assets/logo.svg
+import logo from "../assets/logo.svg";
 
 const Header = ({ currentPage, navigate }) => {
   const linkClasses = "hover:text-zinc-200 cursor-pointer transition-all";
@@ -14,15 +14,29 @@ const Header = ({ currentPage, navigate }) => {
         <li>
           <a
             onClick={() => navigate("create")}
-            className={`${linkClasses} ${currentPage === "create" ? activeLinkClasses : ""}`}
+            className={`${linkClasses} ${
+              currentPage === "create" ? activeLinkClasses : ""
+            }`}
           >
             Create Image
           </a>
         </li>
         <li>
           <a
+            onClick={() => navigate("collections")}
+            className={`${linkClasses} ${
+              currentPage === "collections" ? activeLinkClasses : ""
+            }`}
+          >
+            Collections
+          </a>
+        </li>
+        <li>
+          <a
             onClick={() => navigate("downloaded")}
-            className={`${linkClasses} ${currentPage === "downloaded" ? activeLinkClasses : ""}`}
+            className={`${linkClasses} ${
+              currentPage === "downloaded" ? activeLinkClasses : ""
+            }`}
           >
             Downloaded
           </a>
@@ -30,7 +44,9 @@ const Header = ({ currentPage, navigate }) => {
         <li>
           <a
             onClick={() => navigate("favourites")}
-            className={`${linkClasses} ${currentPage === "favourites" ? activeLinkClasses : ""}`}
+            className={`${linkClasses} ${
+              currentPage === "favourites" ? activeLinkClasses : ""
+            }`}
           >
             Favourites
           </a>

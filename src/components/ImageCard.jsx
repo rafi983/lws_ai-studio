@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { useFavourites } from "../context/FavouritesContext";
-import { FiClock, FiAlertTriangle } from "react-icons/fi";
+import { FiClock, FiAlertTriangle, FiFolderPlus } from "react-icons/fi";
 import { BsCheckCircleFill } from "react-icons/bs";
 import { HiSparkles } from "react-icons/hi";
+import AddToCollectionModal from "./AddToCollectionModal";
 
 export default function ImageCard({
   image,
@@ -12,9 +13,12 @@ export default function ImageCard({
   onSelectCompare,
   isSelected,
   onGenerateMore,
+  onRemoveFromCollection,
+  collectionId,
 }) {
   const [hasError, setHasError] = useState(false);
   const { state, dispatch } = useFavourites();
+  const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
 
   const imageId = image.id || image.permanentUrl;
   const isFav = imageId ? !!state.favourites[imageId] : false;
@@ -135,6 +139,17 @@ export default function ImageCard({
               )}
             </button>
 
+            <button
+              className="p-2 bg-black/50 rounded-full hover:bg-black/80 transition"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsCollectionModalOpen(true);
+              }}
+              title="Add to Collection"
+            >
+              <FiFolderPlus className="w-4 h-4 text-white" />
+            </button>
+
             {onDownload && (
               <button
                 className="p-2 bg-black/50 rounded-full hover:bg-black/80 transition"
@@ -187,6 +202,32 @@ export default function ImageCard({
                 ✎
               </button>
             )}
+
+            {onRemoveFromCollection && collectionId && (
+              <button
+                className="p-2 bg-red-600/80 rounded-full hover:bg-red-500 transition"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveFromCollection(collectionId, image.id);
+                }}
+                title="Remove from this Collection"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            )}
           </div>
         </>
       );
@@ -199,36 +240,44 @@ export default function ImageCard({
     image.status === "ready" && imageUrlToDisplay && !hasError;
 
   return (
-    <div
-      className={`relative group rounded-xl overflow-hidden bg-gradient-to-br from-[#0f0f0f] to-[#1a0b2e] w-full h-48 flex items-center justify-center text-center p-4 ${
-        isClickable ? "cursor-pointer" : "cursor-default"
-      }`}
-      onClick={() => {
-        if (isClickable && onClick) {
-          onClick();
-        }
-      }}
-    >
-      {onSelectCompare && image.status === "ready" && (
-        <button
-          type="button"
-          data-image-id={image.id}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelectCompare(image, !isSelected);
-          }}
-          title="Select for comparison"
-          className={`absolute top-2 left-2 z-30 p-1 rounded-full transition ${
-            isSelected
-              ? "bg-purple-600 text-white"
-              : "bg-black/50 text-gray-300 hover:bg-purple-600 hover:text-white"
-          }`}
-        >
-          <BsCheckCircleFill className="w-6 h-6" />
-        </button>
-      )}
+    <>
+      <div
+        className={`relative group rounded-xl overflow-hidden bg-gradient-to-br from-[#0f0f0f] to-[#1a0b2e] w-full h-48 flex items-center justify-center text-center p-4 ${
+          isClickable ? "cursor-pointer" : "cursor-default"
+        }`}
+        onClick={() => {
+          if (isClickable && onClick) {
+            onClick();
+          }
+        }}
+      >
+        {onSelectCompare && image.status === "ready" && (
+          <button
+            type="button"
+            data-image-id={image.id}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectCompare(image, !isSelected);
+            }}
+            title="Select for comparison"
+            className={`absolute top-2 left-2 z-30 p-1 rounded-full transition ${
+              isSelected
+                ? "bg-purple-600 text-white"
+                : "bg-black/50 text-gray-300 hover:bg-purple-600 hover:text-white"
+            }`}
+          >
+            <BsCheckCircleFill className="w-6 h-6" />
+          </button>
+        )}
 
-      {renderContent()}
-    </div>
+        {renderContent()}
+      </div>
+      {isCollectionModalOpen && (
+        <AddToCollectionModal
+          image={image}
+          onClose={() => setIsCollectionModalOpen(false)}
+        />
+      )}
+    </>
   );
 }
