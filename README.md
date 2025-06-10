@@ -138,18 +138,20 @@ The **Canvas Editor** is a full-featured, in-browser image editor built into the
 - All drawing and editing actions are rendered directly onto the canvas.
 - The final result can be downloaded, but is not yet saved in app state or local history.
 
-### 🔎 Image Comparison
+### 🔎 Interactive Image Comparison
 
-This feature allows users to select two generated images and compare them in a responsive modal view. It enhances the user experience by making it easy to visually analyze differences between AI-generated images.
+This feature allows users to select two generated images and compare them directly with an interactive slider. It provides a powerful and intuitive way to analyze subtle differences between generations.
 
 ## 💡 How It Works
 
-- ✅ **Selection**: Users select images for comparison using a bold checkmark button (`BsCheckCircleFill` from `react-icons`) on each image card.
-- 🔢 **Selection Limit**: Only two images can be selected at a time. Selecting more triggers a toast notification 🔔 informing the user.
-- 🔘 **Comparison Button**: Once two images are selected, a floating **Compare Selected (2)** button appears at the bottom-right corner.
-- 🖼️ **Comparison Modal**: Clicking the button opens a modal displaying the two images with detailed metadata (prompt, model, seed, size).
-- ❌ **Close Modal**: Clicking outside the modal or on the close (✖️) button closes the comparison view.
-- ⚡ **UI/UX Enhancements**: Utilizes `react-icons` for clear visual feedback and `toastUtils` for real-time notifications.
+-   ✅ **Selection**: Users select images for comparison using a bold checkmark button (`BsCheckCircleFill` from `react-icons`) on each image card.
+-   🔢 **Selection Limit**: Only two images can be selected at a time. Selecting more triggers a toast notification 🔔.
+-   🔘 **Comparison Button**: Once two images are selected, a floating **Compare Selected (2)** button appears at the bottom-right corner.
+-   ↔️ **Interactive Slider Modal**: Clicking the button opens a modal with a dynamic comparison view. Instead of a static side-by-side display, you can **drag a slider** left and right to seamlessly wipe between the two images.
+-   📊 **Detailed Metadata**: Below the slider, key metadata for both images (like `prompt`, `model`, and `seed`) is clearly displayed, helping you track the exact parameters that created each result.
+-   ❌ **Close Modal**: Clicking outside the modal or on the close (✖️) button closes the comparison view.
+
+**Pro Tip:** This feature is perfect for seeing how a small change in a prompt or a different seed affects the final outcome!
 
 ### ⚙️ Advanced Generation Controls
 - **Model Selection:** Choose from dynamically fetched AI models.
