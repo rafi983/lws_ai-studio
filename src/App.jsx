@@ -5,7 +5,8 @@ import CreateImagePage from "./pages/CreateImagePage";
 import DownloadedPage from "./pages/DownloadedPage";
 import FavouritesPage from "./pages/FavouritesPage.jsx";
 import CollectionsPage from "./pages/CollectionsPage.jsx";
-import StatsPage from "./pages/StatsPage.jsx"; // Import the new page
+import StatsPage from "./pages/StatsPage.jsx";
+import SettingsPage from "./pages/SettingsPage.jsx"; // Import the new page
 import { ImageGenerationProvider } from "./context/ImageGenerationContext.jsx";
 import { DownloadsProvider } from "./context/DownloadsContext.jsx";
 import { FavouritesProvider } from "./context/FavouritesContext.jsx";
@@ -30,7 +31,8 @@ function App() {
                 {currentPage === "collections" && <CollectionsPage />}
                 {currentPage === "downloaded" && <DownloadedPage />}
                 {currentPage === "favourites" && <FavouritesPage />}
-                {currentPage === "stats" && <StatsPage />} {/* Add the route */}
+                {currentPage === "stats" && <StatsPage />}
+                {currentPage === "settings" && <SettingsPage />}{" "}
               </main>
             </Layout>
           </ImageGenerationProvider>

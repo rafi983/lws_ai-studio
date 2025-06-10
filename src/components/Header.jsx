@@ -60,6 +60,14 @@ const Header = ({ currentPage, navigate }) => {
           My Stats
         </a>
       </li>
+      <li>
+        <a
+          onClick={() => handleNavigate("settings")}
+          className={`${linkClasses} ${currentPage === "settings" ? activeLinkClasses : ""}`}
+        >
+          Settings
+        </a>
+      </li>
     </>
   );
 
@@ -103,6 +111,14 @@ const Header = ({ currentPage, navigate }) => {
           className={`${mobileLinkClasses} ${currentPage === "stats" ? activeMobileLinkClasses : inactiveMobileLinkClasses}`}
         >
           My Stats
+        </a>
+      </li>
+      <li>
+        <a
+          onClick={() => handleNavigate("settings")}
+          className={`${mobileLinkClasses} ${currentPage === "settings" ? activeMobileLinkClasses : inactiveMobileLinkClasses}`}
+        >
+          Settings
         </a>
       </li>
     </>
