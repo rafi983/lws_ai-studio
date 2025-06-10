@@ -106,37 +106,43 @@ This is perfect for when you think, "I love this concept, but I want to see a co
 **How it works:**  
 - A row of mini thumbnails appears beneath the main image in the modal. Clicking any thumbnail immediately displays that image in full preview.
 
+### 🖌️ Enhanced Canvas Editor
 
-### 🖌️ Canvas Editor
-
-The **Canvas Editor** is a full-featured, in-browser image editor built into the AI image generation app. It allows users to annotate, draw, and enhance generated images directly in the app — no external tools needed.
+The **Canvas Editor** is a powerful, in-browser image editor built directly into the application. It empowers you to annotate, transform, and enhance your generated images without needing any external software. This turns the app into a one-stop creative suite, from generation to final touches.
 
 **Features:**
 
-- **Freehand Drawing**  
-  Draw on the image using a customizable brush with color and stroke width controls.
+-   **Freehand Drawing**
+    Draw on the image using a customizable brush with color and size controls.
 
-- **Text Annotations**  
-  Click anywhere on the canvas to place user-input text with adjustable size and color.
+-   **Text Annotations**
+    Click anywhere on the canvas to place user-input text with adjustable color and size.
 
-- **Emoji Stickers**  
-  Choose from a set of popular emojis to drag-and-drop playful elements onto the image.
+-   **Emoji Stickers**
+    Choose from a set of popular emojis to add playful elements to your image.
 
-- **Undo/Redo History**  
-  Every drawing action is recorded and can be reversed or re-applied using undo/redo buttons.
+-   **Image Filters**
+    Apply instant visual effects like **Grayscale**, **Sepia**, and **Invert** to change the mood of your artwork.
 
-- **Clear Canvas**  
-  Revert the canvas back to the original image with a single click.
+-   **Image Rotation**
+    Rotate the image in 90-degree increments with a single click.
 
-- **Image Download**  
-  Save the edited image as a `.png` file using the built-in download button.
+-   **Undo/Redo History**
+    Every drawing action is recorded and can be reversed or re-applied using undo/redo buttons.
 
+-   **Clear & Reset**
+    Revert the canvas back to the original, unedited image with a single click.
+
+-   **Image Download**
+    Save your edited masterpiece as a high-quality `.png` file using the download button.
+
+---
 ## 💡 How It Works
 
-- When the user clicks the **Edit** button on any generated image, the `CanvasEditorModal` opens.
-- The editor loads the image onto a `<canvas>` element at full resolution.
-- All drawing and editing actions are rendered directly onto the canvas.
-- The final result can be downloaded, but is not yet saved in app state or local history.
+-   When a user clicks the **Edit** button on any generated image, the `CanvasEditorModal` opens and loads the image onto a `<canvas>` element at its full resolution.
+-   The editor uses React state to manage transformations like `rotation` and `filter` non-destructively. When a filter or rotation is applied, the canvas is cleared and the base image is redrawn with the new transformation, preserving the original image data.
+-   User actions like drawing, text, and emoji placement are rendered directly on top of the transformed base image.
+-   The final canvas state, including all drawings and transformations, can be downloaded at any time. The editor's history does not yet include filter or rotation changes.
 
 ### 🔎 Interactive Image Comparison
 
