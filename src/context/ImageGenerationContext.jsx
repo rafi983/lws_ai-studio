@@ -103,6 +103,8 @@ export const ImageGenerationProvider = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const blobUrlsRef = useRef([]);
 
+  const generationIdRef = useRef(null);
+
   useEffect(() => {
     return () => {
       blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
@@ -216,8 +218,8 @@ export const ImageGenerationProvider = ({ children }) => {
       const dataToSave = {
         prompt: state.prompt,
         images: state.images
-          .filter((image) => image) // SAFETY CHECK: Filter out any undefined items
-          .map(({ displayUrl, ...rest }) => rest), // Now, safely map
+          .filter((image) => image)
+          .map(({ displayUrl, ...rest }) => rest),
       };
       localStorage.setItem(
         LOCAL_STORAGE_IMAGES_KEY,
@@ -243,6 +245,9 @@ export const ImageGenerationProvider = ({ children }) => {
         return;
       }
 
+      const currentGenerationId = Date.now();
+      generationIdRef.current = currentGenerationId;
+
       dispatch({
         type: ActionTypes.SET_IMAGES,
         payload: Array(NUM_IMAGES_TO_GENERATE).fill({ status: "queued" }),
@@ -255,6 +260,10 @@ export const ImageGenerationProvider = ({ children }) => {
       let firstImageUrl = null;
 
       for (let i = 0; i < NUM_IMAGES_TO_GENERATE; i++) {
+        if (generationIdRef.current !== currentGenerationId) {
+          return;
+        }
+
         dispatch({
           type: ActionTypes.SET_IMAGE,
           index: i,
@@ -296,6 +305,10 @@ export const ImageGenerationProvider = ({ children }) => {
         } catch {
           imageResult = { status: "error" };
           showWarningToast("Image generation failed for one item.");
+        }
+
+        if (generationIdRef.current !== currentGenerationId) {
+          return;
         }
 
         dispatch({
