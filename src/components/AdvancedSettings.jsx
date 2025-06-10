@@ -57,7 +57,12 @@ const AdvancedSettings = ({
           <input
             type="number"
             value={width}
-            onChange={(e) => setDimensions(Number(e.target.value), height)}
+            onChange={(e) =>
+              setDimensions(
+                e.target.value === "" ? "" : Number(e.target.value),
+                height,
+              )
+            }
             className="w-full bg-zinc-900/10 px-3 py-2 border border-zinc-700/70 rounded-md text-white"
           />
         </div>
@@ -69,7 +74,12 @@ const AdvancedSettings = ({
           <input
             type="number"
             value={height}
-            onChange={(e) => setDimensions(width, Number(e.target.value))}
+            onChange={(e) =>
+              setDimensions(
+                width,
+                e.target.value === "" ? "" : Number(e.target.value),
+              )
+            }
             className="w-full bg-zinc-900/10 px-3 py-2 border border-zinc-700/70 rounded-md text-white"
           />
         </div>

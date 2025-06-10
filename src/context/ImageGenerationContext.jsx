@@ -102,7 +102,6 @@ const reducer = (state, action) => {
 export const ImageGenerationProvider = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const blobUrlsRef = useRef([]);
-
   const generationIdRef = useRef(null);
 
   useEffect(() => {
@@ -257,6 +256,9 @@ export const ImageGenerationProvider = ({ children }) => {
         ? parseInt(state.seed, 10)
         : Math.floor(Math.random() * 1000000000);
 
+      const widthToSend = state.width || initialState.width;
+      const heightToSend = state.height || initialState.height;
+
       let firstImageUrl = null;
 
       for (let i = 0; i < NUM_IMAGES_TO_GENERATE; i++) {
@@ -277,8 +279,8 @@ export const ImageGenerationProvider = ({ children }) => {
           const apiResponse = await generateImageFromApi({
             prompt: state.prompt,
             model: state.model,
-            width: state.width,
-            height: state.height,
+            width: widthToSend,
+            height: heightToSend,
             seed: currentSeed,
             noLogo: state.noLogo,
           });
@@ -289,8 +291,8 @@ export const ImageGenerationProvider = ({ children }) => {
               prompt: state.prompt,
               model: state.model,
               seed: currentSeed,
-              width: state.width,
-              height: state.height,
+              width: widthToSend,
+              height: heightToSend,
               displayUrl: apiResponse.displayUrl,
               permanentUrl: apiResponse.permanentUrl || apiResponse.displayUrl,
               status: "ready",
